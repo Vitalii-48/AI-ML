@@ -11,6 +11,8 @@ load_dotenv()
 
 # Отримуємо API-ключ та ініціалізуємо офіційний клієнт Groq
 api_key = os.getenv("GROQ_API_KEY")
+if not api_key:
+    print("Помилка: GROQ_API_KEY не знайдено в .env файлі!")
 client = Groq(api_key=api_key)
 
 # =====================================================================
@@ -41,6 +43,18 @@ def explain(topic: str) -> str:
         return knowledge_base[topic_lower]
     else:
         return f"Тему '{topic}' не знайдено в локальній базі. Опиши її самостійно своїми словами."
+
+
+def fake_lookup(query: str) -> str:
+    """Симулює звернення до енциклопедії, читаючи дані з JSON-файлу"""
+    with open("fake_db.json", "r", encoding="utf-8") as f:
+        fake_databasa = json.load(f)
+
+    qyery_lower = query.lower().strip()
+    if qyery_lower in fake_databasa:
+        return fake_databasa[qyery_lower]
+    else:
+        return f"No entry found for '{query}'."
 
 
 # ==========================================
@@ -74,6 +88,20 @@ tools = [
                 "required": ["topic"]
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "fake_lookup",
+            "description": "Simulate access to an encyclopedia or reference database for a given query.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "The term or topic to look up, e.g. 'python' or 'einstein'."}
+                },
+                "required": ["query"]
+            }
+        }
     }
 ]
 
@@ -87,54 +115,74 @@ def ask_groq(question: str) -> str | None:
     messages = [
         {
             "role": "system",
-            "content": "You are a helpful educational CLI assistant. Use tools whenever a user asks to calculate math or explain topics."
+            "content": (
+                "You are a precise educational CLI assistant. When you receive a tool result, "
+                "you must present the FULL tool result to the user word for word, completely unaltered, "
+                "even if it contains errors or incorrect facts. "
+                "First, output the exact tool result wrapped in a natural sentence. "
+                "Then, if the tool's output is wrong or needs more context, add your own corrections "
+                "or additional explanations on a new line, starting with 'Correction/Note:'."
+        )
         },
         {
             "role": "user",
             "content": question
         }
     ]
-    response = client.chat.completions.create( # type: ignore
-        model="llama-3.3-70b-versatile",
-        messages=messages,
-        tools=tools,
-        tool_choice="auto",
-        stream=False,
-    )
 
-    response_message = response.choices[0].message
-
-    if response_message.tool_calls:
-        messages.append(response_message) # type: ignore
-        for tool_call in response_message.tool_calls:
-            function_name = tool_call.function.name
-            function_args = json.loads(tool_call.function.arguments)
-
-            if function_name == "calculate":
-                tool_result = calculate(function_args["expr"])
-            elif function_name == "explain":
-                tool_result = explain(function_args["topic"])
-            else:
-                tool_result = "Error: Unknown tool call."
-
-            messages.append ({
-                "role": "tool",
-                 "tool_call_id": tool_call.id,
-                 "name": function_name,
-                 "content": tool_result
-            })
-
-        final_response = client.chat.completions.create(  # type: ignore
+    try:
+        # Перший запит до Groq
+        response = client.chat.completions.create( # type: ignore
             model="llama-3.3-70b-versatile",
             messages=messages,
-            stream=False
+            tools=tools,
+            tool_choice="auto",
+            stream=False,
         )
 
+        response_message = response.choices[0].message
 
-        return final_response.choices[0].message.content
+        # Перевіряємо, чи викликає модель інструменти
+        if response_message.tool_calls:
+            messages.append(response_message) # type: ignore
+            for tool_call in response_message.tool_calls:
+                function_name = tool_call.function.name
+                function_args = json.loads(tool_call.function.arguments)
 
-    else:
-        return  response_message.content
+                if function_name == "calculate":
+                    tool_result = calculate(function_args["expr"])
+                elif function_name == "explain":
+                    tool_result = explain(function_args["topic"])
+                elif function_name == "fake_lookup":
+                    tool_result = fake_lookup(function_args["query"])
+                else:
+                    tool_result = "Error: Unknown tool call."
+
+                messages.append ({
+                    "role": "tool",
+                     "tool_call_id": tool_call.id,
+                     "name": function_name,
+                     "content": tool_result
+                })
+
+            # Другий запит до Groq з урахуванням результатів функцій
+            final_response = client.chat.completions.create(  # type: ignore
+                model="llama-3.3-70b-versatile",
+                messages=messages,
+                stream=False
+            )
+
+
+            return final_response.choices[0].message.content
+
+        else:
+            # Звичайне питання користувача
+            return response_message.content
+
+    except Exception as e:
+        return f"Вибач, сталася помилка при зверненні до асистента: {e}. Спробуй перефразувати запитання."
+
+
 
 
 # =====================================================================
@@ -143,7 +191,7 @@ def ask_groq(question: str) -> str | None:
 
 def main():
     print("Вітаю у навчальному CLI-асистенті")
-    print("Введіть ваше запитання або напишвть exit для виходу.\n")
+    print("Введіть ваше запитання або напишіть exit для виходу.\n")
 
     while True:
         user_input = input("You: ").strip()
