@@ -123,7 +123,7 @@ tools = [
         "type": "function",
         "function": {
             "name": "fake_lookup",
-            "description": "Look up information in the local reference database. IMPORTANT: Generate valid JSON with a space after the function name.",
+            "description": "Look up information in the local reference database.",
             "parameters": {
                 "type": "object",
                 "properties": {
