@@ -1,5 +1,5 @@
 # task 2\tool_assistant_day2.py
-
+import datetime
 import os
 import json
 
@@ -15,6 +15,19 @@ if not api_key:
     print("Помилка: GROQ_API_KEY не знайдено в .env файлі!")
 client = Groq(api_key=api_key)
 
+
+def log_tool_call(function_name: str, args: dict) :
+    if not os.path.exists("logs"):
+        os.makedirs("logs")
+
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    current_date = datetime.datetime.now().strftime("%Y-%m-%d")
+    file_path = f"logs/{current_date}.log"
+
+    log_entry = f"[{timestamp}] Tool: {function_name} | Args: {json.dumps(args, ensure_ascii=False)}\n"
+
+    with open(file_path, "a", encoding="utf-8") as f_l:
+        f_l.write(log_entry)
 # =====================================================================
 # 1. ЛОКАЛЬНІ PYTHON-ФУНКЦІЇ (ІНСТРУМЕНТИ / TOOLS)
 # =====================================================================
@@ -116,13 +129,15 @@ def ask_groq(question: str) -> str | None:
         {
             "role": "system",
             "content": (
-                "You are a precise educational CLI assistant. When you receive a tool result, "
-                "you must present the FULL tool result to the user word for word, completely unaltered, "
-                "even if it contains errors or incorrect facts. "
-                "First, output the exact tool result wrapped in a natural sentence. "
-                "Then, if the tool's output is wrong or needs more context, add your own corrections "
-                "or additional explanations on a new line, starting with 'Correction/Note:'."
-        )
+                "You are a useful CLI learning assistant. Follow these formatting rules depending on the situation:\n\n"
+                "1. IF A LOCAL FUNCTION IS USED:\n"
+                "You must mention the source of information and its literal result. Format your response exactly according to this template:\n"
+                "According to the source [function_name], the value is: [exact_tool_result].\n"
+                "[Your brief personal comment or addition here, if necessary].\n\n"
+                "Note: Replace [function_name] with the actual name of the called tool and [exact_tool_result] with its exact return value word-for-word.\n\n"
+                "2. IF A TOOL IS NOT NEEDED:\n"
+                "Give your own, independent answer. In this case, do NOT mention any local functions, tools, or sources. The answer must be simple, direct, and concise."
+            )
         },
         {
             "role": "user",
@@ -148,6 +163,7 @@ def ask_groq(question: str) -> str | None:
             for tool_call in response_message.tool_calls:
                 function_name = tool_call.function.name
                 function_args = json.loads(tool_call.function.arguments)
+                log_tool_call(function_name, function_args)
 
                 if function_name == "calculate":
                     tool_result = calculate(function_args["expr"])
