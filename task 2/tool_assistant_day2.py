@@ -2,6 +2,7 @@
 import datetime
 import os
 import json
+import wikipediaapi
 
 from dotenv import load_dotenv
 from groq import Groq
@@ -70,6 +71,22 @@ def fake_lookup(query: str) -> str:
         return f"No entry found for '{query}'."
 
 
+def wikipedia_search(query: str) -> str:
+    """Шукає інформацію на реальній Вікіпедії."""
+    wiki = wikipediaapi.Wikipedia(
+        user_agent="EducationalCLIAssistant/1.0 (your_email@example.com)",
+        language="en"
+    )
+    try:
+        page = wiki.page(query.strip())
+        if page.exists():
+            # Беремо перший абзац
+            return page.summary.split('\n')[0]
+        return f"Information about '{query}' not found on Wikipedia."
+    except Exception as e:
+        return f"Error connecting to Wikipedia: {str(e)}"
+
+
 # ==========================================
 # 2. JSON-ОПИС ІНСТРУМЕНТІВ ДЛЯ ШІ (JSON/DICT)
 # ==========================================
@@ -106,11 +123,25 @@ tools = [
         "type": "function",
         "function": {
             "name": "fake_lookup",
-            "description": "Simulate access to an encyclopedia or reference database for a given query.",
+            "description": "Look up information in the local reference database. IMPORTANT: Generate valid JSON with a space after the function name.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "query": {"type": "string", "description": "The term or topic to look up, e.g. 'python' or 'einstein'."}
+                },
+                "required": ["query"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "wikipedia_search",
+            "description": "Search the live Wikipedia API. Use ONLY when the user explicitly asks to search Wikipedia.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "The search term to look up on Wikipedia."}
                 },
                 "required": ["query"]
             }
@@ -129,15 +160,17 @@ def ask_groq(question: str) -> str | None:
         {
             "role": "system",
             "content": (
-                "You are a useful CLI learning assistant. Follow these formatting rules depending on the situation:\n\n"
+                "You are a useful CLI learning assistant. You have access to tools: 'calculate', 'explain', 'fake_lookup', and 'wikipedia_search'.\n\n"
+                "Follow these formatting rules depending on the situation:\n\n"
                 "1. IF A LOCAL FUNCTION IS USED:\n"
+                "- Use 'wikipedia_search' ONLY if the user explicitly mentions the word 'Wikipedia' in their request.\n"
+                "- Use 'fake_lookup' for general informational queries where Wikipedia is not explicitly mentioned.\n"
                 "You must mention the source of information and its literal result. Format your response exactly according to this template:\n"
                 "According to the source [function_name], the value is: [exact_tool_result].\n"
                 "[Your brief personal comment or addition here, if necessary].\n\n"
                 "Note: Replace [function_name] with the actual name of the called tool and [exact_tool_result] with its exact return value word-for-word.\n\n"
                 "2. IF A TOOL IS NOT NEEDED:\n"
-                "Give your own, independent answer. In this case, do NOT mention any local functions, tools, or sources. The answer must be simple, direct, and concise."
-            )
+                "Give your own, independent answer. In this case, do NOT mention any local functions, tools, or sources. The answer must be simple, direct, and concise."            )
         },
         {
             "role": "user",
@@ -171,6 +204,8 @@ def ask_groq(question: str) -> str | None:
                     tool_result = explain(function_args["topic"])
                 elif function_name == "fake_lookup":
                     tool_result = fake_lookup(function_args["query"])
+                elif function_name == "wikipedia_search":
+                    tool_result = wikipedia_search(function_args["query"])
                 else:
                     tool_result = "Error: Unknown tool call."
 
