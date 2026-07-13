@@ -62,11 +62,11 @@ def explain(topic: str) -> str:
 def fake_lookup(query: str) -> str:
     """Симулює звернення до енциклопедії, читаючи дані з JSON-файлу"""
     with open("fake_db.json", "r", encoding="utf-8") as f:
-        fake_databasa = json.load(f)
+        fake_database = json.load(f)
 
-    qyery_lower = query.lower().strip()
-    if qyery_lower in fake_databasa:
-        return fake_databasa[qyery_lower]
+    query_lower = query.lower().strip()
+    if query_lower in fake_database:
+        return fake_database[query_lower]
     else:
         return f"No entry found for '{query}'."
 
