@@ -3,3 +3,5 @@ python-dotenv==1.2.2
 rich==15.0.0
 tiktoken==0.13.0
 wikipedia-api
+numpy
+sentence-transformers
