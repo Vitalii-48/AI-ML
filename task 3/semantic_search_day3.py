@@ -6,77 +6,46 @@ import numpy as np
 from dotenv import load_dotenv
 from groq import Groq
 from sentence_transformers import SentenceTransformer
+from pathlib import Path
 
 
-corpus = [
-    "Python is a high-level, interpreted programming language known for its readability "
-    "and simple syntax. It was created by Guido van Rossum and first released in 1991. "
-    "Python emphasizes code readability, often using significant whitespace instead of "
-    "curly braces to define blocks of code.",
+def load_documents(folder: str) -> list[dict]:
+    """Load all text files from the knowledge folder."""
+    folder = Path(folder)
 
-    "In Python, data structures like lists, tuples, and dictionaries help organize data. "
-    "A list is a mutable, ordered collection of items that can be changed after creation. "
-    "A tuple is similar to a list but immutable, meaning its contents cannot be modified "
-    "once created. Dictionaries store data as key-value pairs, allowing fast lookups by key.",
+    documents = []
 
-    "Python supports object-oriented programming (OOP) through the use of classes and "
-    "objects. A class acts as a blueprint for creating objects, and the 'self' keyword "
-    "refers to the current instance of the class. Methods defined inside a class can "
-    "access and modify the object's attributes.",
+    for file_path in folder.glob("*.txt"):
+        text = file_path.read_text(encoding="utf-8")
+        paragraphs = text.split("\n\n")
 
-    "Functions in Python are defined using the 'def' keyword and can accept parameters, "
-    "return values, and have default arguments. List comprehensions offer a concise way "
-    "to create lists based on existing iterables, often replacing longer for-loops with "
-    "a single readable line of code.",
+        for paragraph_number, paragraph in enumerate(paragraphs, start=1):
+            paragraph = paragraph.strip()
 
-    "Managing dependencies in Python projects is commonly done using 'pip', the standard "
-    "package manager. Virtual environments, created with tools like 'venv', help isolate "
-    "project-specific packages so they don't conflict with other projects or the system "
-    "Python installation.",
+            if paragraph:
+                documents.append(
+                    {
+                    "text": paragraph,
+                    "source": file_path.stem,
+                    "chunk": paragraph_number
+                    }
+                )
 
-    "Exception handling in Python is done using 'try', 'except', 'else', and 'finally' "
-    "blocks. This allows a program to catch and handle errors gracefully instead of "
-    "crashing. Custom exceptions can also be created by subclassing the built-in "
-    "'Exception' class.",
+    return documents
 
-    "Python's built-in 'open()' function is used to read and write files. Files can be "
-    "opened in different modes such as read ('r'), write ('w'), or append ('a'). Using "
-    "the 'with' statement ensures that a file is properly closed after its block of code "
-    "finishes executing, even if an error occurs.",
 
-    "A module in Python is simply a file containing Python code that can be imported and "
-    "reused in other programs. A package is a collection of modules organized in "
-    "directories with an '__init__.py' file. The 'import' statement is used to bring "
-    "modules or packages into your current script.",
-
-    "Python supports several ways to iterate over data, including 'for' loops and 'while' "
-    "loops. Generators, created using the 'yield' keyword, allow values to be produced "
-    "one at a time, which is more memory-efficient than returning a full list at once.",
-
-    "Decorators in Python are functions that modify the behavior of other functions "
-    "without changing their code directly. They are applied using the '@' symbol above "
-    "a function definition. Common use cases include logging, timing, and access control.",
-
-    "Python's standard library includes modules like 'os' for interacting with the "
-    "operating system, 'sys' for system-specific parameters, and 'datetime' for working "
-    "with dates and times. These built-in modules reduce the need for external "
-    "dependencies in many common tasks.",
-
-    "Type hints in Python, introduced in PEP 484, allow developers to specify expected "
-    "data types for variables, function parameters, and return values. While Python "
-    "remains dynamically typed at runtime, type hints improve code readability and help "
-    "tools like linters and IDEs catch potential errors earlier.",
-]
-
+corpus = load_documents("knowledge")
 
 model = SentenceTransformer("all-MiniLM-L6-v2")
 
-corpus_embeddings = model.encode(corpus)
+corpus_embeddings = model.encode([doc["text"] for doc in corpus])
 
 
-def cosine_similarity(a, b):
+def cosine_similarity(a, b) -> float:
     """Рахує косинусну схожість між двома векторами."""
-    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+    return float(
+        np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+    )
 
 
 def search(query, top_n=3):
@@ -113,8 +82,14 @@ def generate_answer(query, search_results):
      і питає Groq дати фінальну відповідь.
     """
     context_parts = []
-    for idx, score in search_results:
-        context_parts.append(f"[Document {idx}]: {corpus[idx]}")
+    for rank, (idx, score) in enumerate(search_results, start=1):
+        doc = corpus[idx]
+        context_parts.append(
+            f"Source {rank}\n"
+            f"File: {doc['source']}\n"
+            f"Paragraph: {doc['chunk']}\n"
+            f"{doc['text']}"
+        )
     context = "\n\n".join(context_parts)
 
     prompt = f"""
@@ -127,7 +102,7 @@ If the answer is not in the context, say:
 
 When possible, mention which source(s) you used in your answer.
 For example:
-"According to Source 2..."
+"According to python.txt (paragraph 4)..."
 
 Context:
 {context}
@@ -150,11 +125,11 @@ Answer:
 
 def main():
     print("=" * 60)
-    print("Python Study Assistant")
+    print("Study Assistant")
     print("=" * 60)
-    print("Hi! I'm your Python study assistant.")
-    print("Ask me anything about Python, and I'll answer")
-    print("using my knowledge base.")
+    print("Hi! I'm your study assistant.")
+    print("Ask me anything about Python, biology, economics,")
+    print("or world countries, and I'll answer using my knowledge base.")
     print("\n[INFO] Type 'exit' or 'quit' to end the session.\n")
     while True:
         query = input("> You: ").strip()
@@ -170,9 +145,9 @@ def main():
         results = search(query, top_n=3)
 
         print("\n-> Top matches:")
-        for idx, score in results:
-            print(f"[Document {idx}] (score={score:.3f}) {corpus[idx][:80]}...")
-
+        for rank, (idx, score) in enumerate(results, start=1):
+            doc = corpus[idx]
+            print(f"{rank}. [{doc['source'].title()} | paragraph {doc['chunk']}] (score={score:.3f}) {doc['text'][:80]}...")
 
         answer = generate_answer(query, results)
         print(f"\n-> GPT says:\n{answer}")
