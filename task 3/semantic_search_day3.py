@@ -149,19 +149,34 @@ Answer:
 
 
 def main():
-    print(f"Завантажено {len(corpus)} документів у корпус.\n")
+    print("=" * 60)
+    print("Python Study Assistant")
+    print("=" * 60)
+    print("Hi! I'm your Python study assistant.")
+    print("Ask me anything about Python, and I'll answer")
+    print("using my knowledge base.")
+    print("\n[INFO] Type 'exit' or 'quit' to end the session.\n")
+    while True:
+        query = input("> You: ").strip()
 
-    query = input("> You: ")
-    results = search(query, top_n=3)
+        if query.lower() in ("exit", "quit"):
+            print("\nGoodbye!")
+            break
 
-    print("\n-> Top matches:")
-    for idx, score in results:
-        print(f"[Document {idx}] (score={score:.3f}) {corpus[idx][:80]}...")
+        if not query:
+            print("Please enter a question.\n")
+            continue
+
+        results = search(query, top_n=3)
+
+        print("\n-> Top matches:")
+        for idx, score in results:
+            print(f"[Document {idx}] (score={score:.3f}) {corpus[idx][:80]}...")
 
 
-    answer = generate_answer(query, results)
-    print(f"\n-> GPT says:\n{answer}")
-
+        answer = generate_answer(query, results)
+        print(f"\n-> GPT says:\n{answer}")
+        print()
 
 if __name__ == "__main__":
     main()
