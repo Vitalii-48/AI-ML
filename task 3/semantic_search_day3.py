@@ -113,19 +113,30 @@ def generate_answer(query, search_results):
      і питає Groq дати фінальну відповідь.
     """
     context_parts = []
-    for rank, (idx, score) in enumerate(search_results, start=1):
-        context_parts.append(f"[Source {rank}]: {corpus[idx]}")
+    for idx, score in search_results:
+        context_parts.append(f"[Document {idx}]: {corpus[idx]}")
     context = "\n\n".join(context_parts)
 
-    prompt = f"""Use the following context to answer the question.
-If the context doesn't contain the answer, say so honestly.
+    prompt = f"""
+You are a helpful study assistant.
+
+Answer the question using ONLY the provided context.
+
+If the answer is not in the context, say:
+"I don't have enough information in the provided context."
+
+When possible, mention which source(s) you used in your answer.
+For example:
+"According to Source 2..."
 
 Context:
 {context}
 
-Question: {query}
+Question:
+{query}
 
-Answer:"""
+Answer:
+"""
 
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
@@ -143,10 +154,10 @@ def main():
     query = input("> You: ")
     results = search(query, top_n=3)
 
-    print(f"> You: {query}\n")
-    print("-> Top matches:")
-    for rank, (idx, score) in enumerate(results, start=1):
-        print(f"[{rank}] (score={score:.3f}) {corpus[idx][:80]}...")
+    print("\n-> Top matches:")
+    for idx, score in results:
+        print(f"[Document {idx}] (score={score:.3f}) {corpus[idx][:80]}...")
+
 
     answer = generate_answer(query, results)
     print(f"\n-> GPT says:\n{answer}")
