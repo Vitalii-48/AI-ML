@@ -13,7 +13,10 @@ load_dotenv()
 # Отримуємо API-ключ та ініціалізуємо офіційний клієнт Groq
 api_key = os.getenv("GROQ_API_KEY")
 if not api_key:
-    print("Помилка: GROQ_API_KEY не знайдено в .env файлі!")
+    raise EnvironmentError(
+        "GROQ_API_KEY is not set. Create a .env file with "
+        "GROQ_API_KEY=<your key> next to this script."
+    )
 client = Groq(api_key=api_key)
 
 

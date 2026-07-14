@@ -1,5 +1,4 @@
 # task 1/chat_session.py
-from __future__ import annotations
 
 import json
 import os
@@ -73,12 +72,8 @@ class ChatSession:
     # Conversation handling
     # ------------------------------------------------------------------
     def send_message(self, user_input: str, on_chunk: Optional[Callable[[str], None]] = None) -> dict:
-        """Send a user message, stream the assistant's reply, and track tokens.
+        """Send a user message, stream the assistant's reply, and track tokens."""
 
-        `on_chunk` is called with each streamed text fragment as it arrives
-        (used by the CLI to print in real time). Returns a dict with the
-        assistant's full reply text and token accounting for this turn.
-        """
         self.messages.append({"role": "user", "content": user_input})
         prompt_tokens_est = count_tokens(user_input)
 
@@ -86,7 +81,7 @@ class ChatSession:
         usage = None
 
         try:
-            stream = self.client.chat.completions.create(
+            stream = self.client.chat.completions.create( # type: ignore
                 messages=self.messages,
                 model=self.model,
                 stream=True,

@@ -3,12 +3,10 @@
 import sys
 
 from dotenv import load_dotenv
-
 from chat_session import ChatSession
 
 try:
     from rich.console import Console
-    from rich.markdown import Markdown
 
     console = Console()
     _RICH = True
