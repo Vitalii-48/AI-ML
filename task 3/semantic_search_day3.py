@@ -1,19 +1,30 @@
 # semantic_search_day3.py
 
 import os
+from pathlib import Path
+from typing import TypedDict, List, Tuple
 
 import numpy as np
 from dotenv import load_dotenv
 from groq import Groq
 from sentence_transformers import SentenceTransformer
-from pathlib import Path
 
 
-def load_documents(folder: str) -> list[dict]:
+class Document(TypedDict):
+    text: str
+    source: str
+    chunk: int
+
+
+def load_documents(folder: str) -> list[Document]:
     """Load all text files from the knowledge folder."""
     folder = Path(folder)
+    documents: List[Document] = []
 
-    documents = []
+    if not folder.exists():
+        print(f"[WARNING] Folder '{folder}' does not exist. Creating it.")
+        folder.mkdir(parents=True, exist_ok=True)
+        return documents
 
     for file_path in folder.glob("*.txt"):
         text = file_path.read_text(encoding="utf-8")
@@ -34,34 +45,56 @@ def load_documents(folder: str) -> list[dict]:
     return documents
 
 
-corpus = load_documents("knowledge")
+class VectorStore:
+    """Stores documents and their embeddings."""
 
-model = SentenceTransformer("all-MiniLM-L6-v2")
+    def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
+        self.model = SentenceTransformer(model_name)
+        self.documents: List[Document] = []
+        self.embeddings: np.ndarray | None = None
 
-corpus_embeddings = model.encode([doc["text"] for doc in corpus])
+    def add_documents(self, folder: str) -> None:
+        """Load documents and create normalized embeddings."""
+        self.documents = load_documents(folder)
 
+        embeddings = self.model.encode(
+            [doc["text"] for doc in self.documents]
+        )
 
-def cosine_similarity(a, b) -> float:
-    """Рахує косинусну схожість між двома векторами."""
-    return float(
-        np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
-    )
+        # Normalize embeddings once
+        self.embeddings = embeddings / np.linalg.norm(
+            embeddings,
+            axis=1,
+            keepdims=True,
+        )
 
+    def search(
+            self,
+            query: str,
+            top_n: int = 3,
+    ) -> List[Tuple[int, float]]:
+        """Search for the most relevant documents using cosine similarity."""
+        if self.embeddings is None or not self.documents:
+            return []
 
-def search(query, top_n=3):
-    """
-    Приймає питання користувача, повертає top_n
-    найбільш схожих абзаців з корпусу.
-    """
-    query_embedding = model.encode(query)
+        # Create and normalize query embedding
+        query_embedding = self.model.encode(query)
+        query_embedding /= np.linalg.norm(query_embedding)
 
-    similarities = []
-    for i, doc_embedding in enumerate(corpus_embeddings):
-        score = cosine_similarity(query_embedding, doc_embedding)
-        similarities.append((i, score))
+        # Compute cosine similarity
+        scores = np.dot(self.embeddings, query_embedding)
 
-    similarities.sort(key=lambda x: x[1], reverse=True)
-    return similarities[:top_n]
+        # Get indices of top results
+        top_indices = np.argsort(scores)[::-1][:top_n]
+
+        return [
+            (int(idx), float(scores[idx]))
+            for idx in top_indices
+        ]
+
+    def get_by_id(self, doc_id: int) -> Document:
+        """Return a document by its index."""
+        return self.documents[doc_id]
 
 
 load_dotenv()
@@ -76,14 +109,15 @@ if not api_key:
 client = Groq(api_key=api_key)
 
 
-def generate_answer(query, search_results):
-    """
-    Приймає питання і результати пошуку, формує контекст
-     і питає Groq дати фінальну відповідь.
-    """
-    context_parts = []
-    for rank, (idx, score) in enumerate(search_results, start=1):
-        doc = corpus[idx]
+def generate_answer(
+    store: VectorStore,
+    query: str,
+    search_results: List[Tuple[int, float]],
+) -> str | None:
+    """Generate an answer using retrieved documents."""
+    context_parts: list[str] = []
+    for rank, (idx, _) in enumerate(search_results, start=1):
+        doc = store.get_by_id(idx)
         context_parts.append(
             f"Source {rank}\n"
             f"File: {doc['source']}\n"
@@ -102,7 +136,7 @@ If the answer is not in the context, say:
 
 When possible, mention which source(s) you used in your answer.
 For example:
-"According to python.txt (paragraph 4)..."
+"According to python (paragraph 4)..."
 
 Context:
 {context}
@@ -113,17 +147,23 @@ Question:
 Answer:
 """
 
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[                              # type: ignore
-            {"role": "user", "content": prompt}
-        ],
-    )
+    try:
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[                              # type: ignore
+                {"role": "user", "content": prompt}
+            ],
+        )
+    except Exception as e:
+        return f"Error while contacting LLM: {e}"
 
     return response.choices[0].message.content
 
 
 def main():
+    store = VectorStore()
+    store.add_documents("knowledge")
+
     print("=" * 60)
     print("Study Assistant")
     print("=" * 60)
@@ -142,14 +182,16 @@ def main():
             print("Please enter a question.\n")
             continue
 
-        results = search(query, top_n=3)
+        results = store.search(query, top_n=3)
 
         print("\n-> Top matches:")
         for rank, (idx, score) in enumerate(results, start=1):
-            doc = corpus[idx]
-            print(f"{rank}. [{doc['source'].title()} | paragraph {doc['chunk']}] (score={score:.3f}) {doc['text'][:80]}...")
-
-        answer = generate_answer(query, results)
+            doc = store.get_by_id(idx)
+            print(
+                f"{rank}. [{doc['source']} | Paragraph {doc['chunk']}] "
+                f"(score={score:.3f}) {doc['text'][:80]}..."
+            )
+        answer = generate_answer(store, query, results)
         print(f"\n-> GPT says:\n{answer}")
         print()
 
