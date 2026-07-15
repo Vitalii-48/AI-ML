@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from typing import TypedDict, List, Tuple
+from typing import TypedDict
 
 import numpy as np
 from dotenv import load_dotenv
@@ -16,33 +16,6 @@ class Document(TypedDict):
     chunk: int
 
 
-def load_documents(folder: str) -> list[Document]:
-    """Load all text files from the knowledge folder."""
-    folder = Path(folder)
-    documents: List[Document] = []
-
-    if not folder.exists():
-        print(f"[WARNING] Folder '{folder}' does not exist. Creating it.")
-        folder.mkdir(parents=True, exist_ok=True)
-        return documents
-
-    for file_path in folder.glob("*.txt"):
-        text = file_path.read_text(encoding="utf-8")
-        paragraphs = text.split("\n\n")
-
-        for paragraph_number, paragraph in enumerate(paragraphs, start=1):
-            paragraph = paragraph.strip()
-
-            if paragraph:
-                documents.append(
-                    {
-                    "text": paragraph,
-                    "source": file_path.stem,
-                    "chunk": paragraph_number
-                    }
-                )
-
-    return documents
 
 
 class VectorStore:
@@ -50,12 +23,41 @@ class VectorStore:
 
     def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
         self.model = SentenceTransformer(model_name)
-        self.documents: List[Document] = []
+        self.documents: list[Document] = []
         self.embeddings: np.ndarray | None = None
+
+    @staticmethod
+    def load_documents(folder: str) -> list[Document]:
+        """Load all text files from the knowledge folder."""
+        folder = Path(folder)
+        documents: list[Document] = []
+
+        if not folder.exists():
+            print(f"[WARNING] Folder '{folder}' does not exist. Creating it.")
+            folder.mkdir(parents=True, exist_ok=True)
+            return documents
+
+        for file_path in folder.glob("*.txt"):
+            text = file_path.read_text(encoding="utf-8")
+            paragraphs = text.split("\n\n")
+
+            for paragraph_number, paragraph in enumerate(paragraphs, start=1):
+                paragraph = paragraph.strip()
+
+                if paragraph:
+                    documents.append(
+                        {
+                            "text": paragraph,
+                            "source": file_path.stem,
+                            "chunk": paragraph_number
+                        }
+                    )
+
+        return documents
 
     def add_documents(self, folder: str) -> None:
         """Load documents and create normalized embeddings."""
-        self.documents = load_documents(folder)
+        self.documents = self.load_documents(folder)
 
         embeddings = self.model.encode(
             [doc["text"] for doc in self.documents]
@@ -72,7 +74,7 @@ class VectorStore:
             self,
             query: str,
             top_n: int = 3,
-    ) -> List[Tuple[int, float]]:
+    ) -> list[tuple[int, float]]:
         """Search for the most relevant documents using cosine similarity."""
         if self.embeddings is None or not self.documents:
             return []
@@ -99,7 +101,7 @@ class VectorStore:
 
 load_dotenv()
 
-# Отримуємо API-ключ та ініціалізуємо офіційний клієнт Groq
+# Get the API key and initialize the official Groq client
 api_key = os.getenv("GROQ_API_KEY")
 if not api_key:
     raise EnvironmentError(
@@ -112,7 +114,7 @@ client = Groq(api_key=api_key)
 def generate_answer(
     store: VectorStore,
     query: str,
-    search_results: List[Tuple[int, float]],
+    search_results: list[tuple[int, float]],
 ) -> str | None:
     """Generate an answer using retrieved documents."""
     context_parts: list[str] = []
