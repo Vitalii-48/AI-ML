@@ -18,7 +18,10 @@ except ImportError:  # rich is optional, plain print fallback
 
 # --- Simple settings (edit these directly instead of passing CLI args) ---
 MODEL = "llama-3.3-70b-versatile"
-SYSTEM_PROMPT = None  # None -> uses ChatSession's default tutor prompt
+SYSTEM_PROMPT = (
+    "You are a math tutor. Explain mathematical concepts step by step, "
+    "use formulas and examples, ask follow-up questions, and check the student's understanding."
+)
 LOG_FORMAT = "md"  # "md" or "json"
 
 
@@ -59,7 +62,7 @@ def main() -> None:
 
         printed_header = False
 
-        def on_chunk(text: str) -> None:
+        def on_chunk(text: str | None) -> None:
             nonlocal printed_header
             if not printed_header:
                 print("Assistant: ", end="", flush=True)

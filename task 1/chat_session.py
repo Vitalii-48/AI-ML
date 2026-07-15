@@ -72,22 +72,23 @@ class ChatSession:
     # ------------------------------------------------------------------
     # Conversation handling
     # ------------------------------------------------------------------
-    def send_message(self, user_input: str, on_chunk: Optional[Callable[[str], None]] = None) -> dict:
+    def send_message(self, user_input: str, on_chunk: Optional[Callable[[str | None], None]] = None) -> dict:
         """Send a user message, stream the assistant's reply, and track tokens.
 
         `on_chunk` is called with each streamed text fragment as it arrives
         (used by the CLI to print in real time). Returns a dict with the
-        assistant's full reply text and token accounting for this turn.
+        assistant's full reply
+         text and token accounting for this turn.
         """
-        self.messages.append({"role": "user", "content": user_input})
+        buf_messages = self.messages + [{"role":"user", "content": user_input}]
         prompt_tokens_est = count_tokens(user_input)
 
         full_reply = ""
         usage = None
 
         try:
-            stream = self.client.chat.completions.create(
-                messages=self.messages,
+            stream = self.client.chat.completions.create(       # type: ignore
+                messages=buf_messages,
                 model=self.model,
                 stream=True,
             )
@@ -113,6 +114,7 @@ class ChatSession:
         except APIStatusError as exc:
             raise RuntimeError(f"Groq API returned an error (status {exc.status_code}): {exc.message}") from exc
 
+        self.messages.append({"role": "user", "content": user_input})
         self.messages.append({"role": "assistant", "content": full_reply})
 
         if usage is not None:
