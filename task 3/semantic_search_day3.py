@@ -1,5 +1,6 @@
 # semantic_search_day3.py
 
+import argparse
 import os
 from pathlib import Path
 from typing import TypedDict
@@ -10,16 +11,17 @@ from groq import Groq
 from sentence_transformers import SentenceTransformer
 
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+
+
 class Document(TypedDict):
     text: str
     source: str
     chunk: int
 
 
-
-
 class VectorStore:
-    """Stores documents and their embeddings."""
+    """Stores documents and their embeddings, and provides semantic search."""
 
     def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
         self.model = SentenceTransformer(model_name)
@@ -111,7 +113,7 @@ if not api_key:
 client = Groq(api_key=api_key)
 
 
-def bild_context(store: VectorStore, search_results: list[tuple[int, float]]) -> str:
+def build_context(store: VectorStore, search_results: list[tuple[int, float]]) -> str:
     """Generates textual context from top search results — with source numbering."""
     context_parts: list[str] = []
     for rank, (idx, _) in enumerate(search_results, start=1):
@@ -129,9 +131,10 @@ def generate_answer(
     store: VectorStore,
     query: str,
     search_results: list[tuple[int, float]],
+    model: str = "llama-3.3-70b-versatile",
 ) -> str | None:
     """Generate an answer using retrieved documents."""
-    context = bild_context(store, search_results)
+    context = build_context(store, search_results)
 
     prompt = f"""
 You are a helpful study assistant.
@@ -156,7 +159,7 @@ Answer:
 
     try:
         response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model=model,
             messages=[                              # type: ignore
                 {"role": "user", "content": prompt}
             ],
@@ -170,9 +173,10 @@ Answer:
 def generate_quiz_question(
     store: VectorStore,
     search_results: list[tuple[int, float]],
+    model: str = "llama-3.3-70b-versatile",
 ) -> str | None:
     """Generate one short quiz question based on the retrieved context (Study Mode)."""
-    context = bild_context(store, search_results[:1])   # to send a question
+    context = build_context(store, search_results[:1])   # to send a question
 
     prompt = f"""
 You are a study assistant helping the user practice what they just learned.
@@ -188,7 +192,7 @@ Quiz question:
 
     try:
         response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model=model,
             messages=[ {"role": "user", "content": prompt}] # type: ignore
         )
     except Exception as e:
@@ -197,9 +201,42 @@ Quiz question:
     return response.choices[0].message.content
 
 
+def parse_args() -> argparse.Namespace:
+    """Розбирає аргументи командного рядка."""
+    parser = argparse.ArgumentParser(description="Study Assistant — semantic search + RAG")
+
+    parser.add_argument(
+        "--knowledge",
+        type=str,
+        default=str(SCRIPT_DIR / "knowledge"),
+        help="Шлях до папки з базою знань (default: SCRIPT_DIR/knowledge)",
+    )
+    parser.add_argument(
+        "--top-n",
+        type=int,
+        default=3,
+        help="Скільки топ-збігів шукати для кожного питання (default: 3)",
+    )
+    parser.add_argument(
+        "--model",
+        type=str,
+        default="llama-3.3-70b-versatile",
+        help="Назва Groq-моделі для генерації відповідей (default: llama-3.3-70b-versatile)",
+    )
+    parser.add_argument(
+        "--no-quiz",
+        action="store_true",
+        help="Вимкнути Study Mode (не показувати quiz-питання після відповіді)",
+    )
+
+    return parser.parse_args()
+
+
 def main():
+    args = parse_args()
+
     store = VectorStore()
-    store.add_documents("knowledge")
+    store.add_documents(args.knowledge)
 
     print("=" * 60)
     print("Study Assistant")
@@ -219,7 +256,7 @@ def main():
             print("Please enter a question.\n")
             continue
 
-        results = store.search(query, top_n=3)
+        results = store.search(query, top_n= args.top_n)
 
         print("\n-> Top matches:")
         for rank, (idx, score) in enumerate(results, start=1):
@@ -228,11 +265,12 @@ def main():
                 f"{rank}. [{doc['source']} | Paragraph {doc['chunk']}] "
                 f"(score={score:.3f}) {doc['text'][:80]}..."
             )
-        answer = generate_answer(store, query, results)
+        answer = generate_answer(store, query, results, model=args.model)
         print(f"\n-> GPT says:\n{answer}")
 
-        quiz_question = generate_quiz_question(store, results)
-        print(f"\nQuick check:\n{quiz_question}")
+        if not args.no_quiz:
+            quiz_question = generate_quiz_question(store, results, model=args.model)
+            print(f"\nQuick check:\n{quiz_question}")
         print()
 
 if __name__ == "__main__":
