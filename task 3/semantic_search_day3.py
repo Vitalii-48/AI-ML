@@ -111,12 +111,8 @@ if not api_key:
 client = Groq(api_key=api_key)
 
 
-def generate_answer(
-    store: VectorStore,
-    query: str,
-    search_results: list[tuple[int, float]],
-) -> str | None:
-    """Generate an answer using retrieved documents."""
+def bild_context(store: VectorStore, search_results: list[tuple[int, float]]) -> str:
+    """Generates textual context from top search results — with source numbering."""
     context_parts: list[str] = []
     for rank, (idx, _) in enumerate(search_results, start=1):
         doc = store.get_by_id(idx)
@@ -126,7 +122,16 @@ def generate_answer(
             f"Paragraph: {doc['chunk']}\n"
             f"{doc['text']}"
         )
-    context = "\n\n".join(context_parts)
+    return "\n\n".join(context_parts)
+
+
+def generate_answer(
+    store: VectorStore,
+    query: str,
+    search_results: list[tuple[int, float]],
+) -> str | None:
+    """Generate an answer using retrieved documents."""
+    context = bild_context(store, search_results)
 
     prompt = f"""
 You are a helpful study assistant.
@@ -158,6 +163,36 @@ Answer:
         )
     except Exception as e:
         return f"Error while contacting LLM: {e}"
+
+    return response.choices[0].message.content
+
+
+def generate_quiz_question(
+    store: VectorStore,
+    search_results: list[tuple[int, float]],
+) -> str | None:
+    """Generate one short quiz question based on the retrieved context (Study Mode)."""
+    context = bild_context(store, search_results[:1])   # to send a question
+
+    prompt = f"""
+You are a study assistant helping the user practice what they just learned.
+ 
+Based ONLY on the context below, write exactly ONE short quiz question
+that checks understanding of the material. Do not answer it yourself.
+ 
+Context:
+{context}
+ 
+Quiz question:
+"""
+
+    try:
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[ {"role": "user", "content": prompt}] # type: ignore
+        )
+    except Exception as e:
+        return f"Error while generating quiz question: {e}"
 
     return response.choices[0].message.content
 
@@ -195,6 +230,9 @@ def main():
             )
         answer = generate_answer(store, query, results)
         print(f"\n-> GPT says:\n{answer}")
+
+        quiz_question = generate_quiz_question(store, results)
+        print(f"\nQuick check:\n{quiz_question}")
         print()
 
 if __name__ == "__main__":
