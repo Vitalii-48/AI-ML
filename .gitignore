@@ -24,3 +24,5 @@ env/
 # OS files
 .DS_Store
 Thumbs.db
+
+task5/test_runner.py
