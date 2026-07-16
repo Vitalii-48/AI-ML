@@ -123,13 +123,15 @@ def main():
     print("CLI Audio Assistant: Transcription and Summarization️")
     print("================================================================")
     print(f"Selected mode: {mode}")
-    print("Enter the full or relative path to the file (for example: test_audio.mp3).")
+    print("Enter the full or relative path to the file (for example: test_audio1.mp3).")
     print("To exit the program, type 'exit'.\n")
 
     while True:
-        user_input = input("\n> Enter the path to the audio file (or 'exit'): ").strip()
+        user_input = input(
+            "\n> Enter the path(s) to the audio file separated semicolon (or 'exit', 'q'): \n"
+        ).strip()
 
-        if user_input.lower() in ("exit", "quit"):
+        if user_input.lower() in ("exit", "quit", "q"):
             print("\nGoodbye!")
             break
 
@@ -137,32 +139,42 @@ def main():
             print("Please enter the file path.\n")
             continue
 
-        file_path = SCRIPT_DIR / user_input
+        raw_pash = user_input.split(";")
+        file_inputs = [p.strip() for p in raw_pash if p.strip()]
 
-        if not file_path.exists():
-            print("=== audiofile does not exist ===")
-            continue
+        if not (file_inputs):
+            print("Please enter at least one valid file path.\n")
 
-        try:
-            transcript = transcribe_audio(client, str(file_path))
-            print("\n=== [1] WHISPER TRANSCRIPT ===")
-            print(transcript)
-            print("==============================\n")
+        for index, single_input in enumerate(file_inputs, start=1):
+            print(f"\n--- Processing file {index}/{len(file_inputs)}: {single_input} ---")
 
-            if not transcript:
-                print("The audio file is empty or the model did not recognize any words.")
+            file_path = SCRIPT_DIR / single_input
+
+            if not file_path.exists():
+                print("=== audiofile does not exist ===")
                 continue
 
-            print(f"2. Processing the transcript in the mode '{mode}'...")
-            result = process_transcript(client, transcript, mode)
-            print(f"=== [2] RESULT ({mode}) ===")
-            print(result)
-            print("=======================")
+            try:
+                transcript = transcribe_audio(client, str(file_path))
+                print("\n=== [1] WHISPER TRANSCRIPT ===")
+                print(transcript)
+                print("==============================\n")
 
-            log_file = save_to_markdown_log(file_path, transcript, result)
-            print(f"\n[Logs] Results successfully saved to report: {log_file}\n")
-        except Exception as e:
-            print(f"An error occurred:: {e}")
+                if not transcript:
+                    print("The audio file is empty or the model did not recognize any words.")
+                    continue
+
+                print(f"2. Processing the transcript in the mode '{mode}'...")
+                result = process_transcript(client, transcript, mode)
+                print(f"=== [2] RESULT ({mode}) ===")
+                print(result)
+                print("=======================")
+
+                log_file = save_to_markdown_log(file_path, transcript, result)
+                print(f"\n[Logs] Results successfully saved to report: {log_file}\n")
+            except Exception as e:
+                print(f"An error occurred:: {e}")
+
 
 if __name__ == "__main__":
     main()
