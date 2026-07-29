@@ -1,4 +1,4 @@
-# task 1\constants.py
+# task_1\constants.py
 from enums import LogFormat
 
 MODEL = "llama-3.3-70b-versatile"
