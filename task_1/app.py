@@ -1,4 +1,4 @@
-# task 1/app.py
+# task_1/app.py
 
 import sys
 

@@ -1,4 +1,4 @@
-# task 1/chat_session.py
+# task_1/chat_session.py
 
 import json
 import os

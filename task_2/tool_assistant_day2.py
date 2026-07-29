@@ -1,4 +1,4 @@
-# task 2\tool_assistant_day2.py
+# task_2\tool_assistant_day2.py
 import os
 import json
 
