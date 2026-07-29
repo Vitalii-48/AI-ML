@@ -1,37 +1,17 @@
 # task 1/app.py
 
 import sys
-
+from constants import MODEL, SYSTEM_PROMPT, LOG_FORMAT
 from dotenv import load_dotenv
+from rich.console import Console
 
 from chat_session import ChatSession
 
-try:
-    from rich.console import Console
-    from rich.markdown import Markdown
-
-    console = Console()
-    _RICH = True
-except ImportError:  # rich is optional, plain print fallback
-    console = None
-    _RICH = False
-
-# --- Simple settings (edit these directly instead of passing CLI args) ---
-MODEL = "llama-3.3-70b-versatile"
-SYSTEM_PROMPT = (
-    "You are a math tutor. Explain mathematical concepts step by step, "
-    "use formulas and examples, ask follow-up questions, and check the student's understanding."
-)
-LOG_FORMAT = "md"  # "md" or "json"
+console = Console()
 
 
 def cprint(text: str, style: str = "") -> None:
-    if _RICH:
-        console.print(text, style=style)
-    else:
-        print(text)
-
-
+    console.print(text, style=style)
 
 
 def main() -> None:
