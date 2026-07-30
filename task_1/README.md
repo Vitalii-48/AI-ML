@@ -8,12 +8,12 @@ counting, and persistent conversation logs.
 ## File structure
 
 ```
-task1/
-├── chat_session.py   # ChatSession class — all logic for talking to the Groq API
-├── app.py             # CLI entrypoint
-├── logs/               # saved conversation logs (Markdown)
-│   └── 2026-07-12.md   # example saved conversation
-├── requirements.txt
+task_1/
+├── app.py                # CLI entry point
+├── chat_session.py       # ChatSession implementation
+├── constants.py          # application constants
+├── enums.py              # shared enums
+├── logs/                 # saved conversations
 ├── .env.example
 └── README.md
 ```
@@ -59,17 +59,26 @@ After every response the console prints:
 [Tokens used: 142 | Total so far: 142]
 ```
 
-## The `ChatSession` class
+## ChatSession
 
-Located in `chat_session.py`:
+The `ChatSession` class is responsible for:
 
-- keeps the full message history (`system` / `user` / `assistant`);
-- `send_message(user_input, on_chunk=...)` — sends a message, streams the
-  reply piece by piece (via the `on_chunk` callback, which the CLI uses to
-  print in real time), and tracks tokens per turn and per session;
-- `save_log(fmt="md"|"json")` — saves the whole conversation, with
-  timestamps and token stats, to `logs/{date}.md` or `logs/{date}.json`;
-- `summary()` — a short end-of-session summary (turn count, tokens, model).
+- maintaining the conversation history;
+- sending messages to the Groq API;
+- streaming responses token by token;
+- counting tokens per request and for the whole session;
+- updating the conversation history only after a successful API response;
+- saving conversation logs in Markdown or JSON format;
+- generating a session summary.
+
+## Logging
+
+The conversation can be saved in either:
+
+- Markdown (`.md`)
+- JSON (`.json`)
+
+The log format is configured through the application constants.
 
 ## Error handling
 
@@ -89,6 +98,6 @@ API — without waiting for the full response.
 ## Bonus features implemented
 
 - ✅ Token counting via real Groq usage data + `tiktoken` fallback
-- ✅ Colored output via `rich` (with a graceful fallback to plain `print` if
-  `rich` isn't installed)
+- ✅ Colored console output via `rich`
 - ✅ End-of-session summary (`summary()`) when quitting the chat
+- ✅ Conversation logging in both Markdown and JSON formats.
