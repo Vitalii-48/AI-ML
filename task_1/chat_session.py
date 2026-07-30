@@ -1,16 +1,12 @@
-# task 1/chat_session.py
+# task_1/chat_session.py
+from __future__ import annotations
 
 import json
 import os
+import tiktoken
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, Optional
-
-try:
-    import tiktoken
-    _ENCODER = tiktoken.get_encoding("cl100k_base")
-except Exception:  # tiktoken is optional; fall back to a rough estimate
-    _ENCODER = None
+from typing import Callable
 
 from groq import Groq
 from groq import (
@@ -20,35 +16,28 @@ from groq import (
     AuthenticationError,
     RateLimitError,
 )
+from constants import DEFAULT_SYSTEM_PROMPT, MODEL, DEFAULT_LOG_DIR
+from enums import LogFormat
+
+
+_ENCODER = tiktoken.get_encoding("cl100k_base")
 
 
 def count_tokens(text: str) -> int:
-    """Estimate the number of tokens in `text`.
-
-    Uses tiktoken's cl100k_base encoding when available (a good stand-in
-    for Groq/Llama tokenization), otherwise falls back to a ~4 chars/token
-    heuristic so the app still works if tiktoken isn't installed.
-    """
+    """Estimate the number of tokens in `text`. """
     if not text:
         return 0
-    if _ENCODER is not None:
-        return len(_ENCODER.encode(text))
-    return max(1, len(text) // 4)
+    return len(_ENCODER.encode(text))
 
 
 class ChatSession:
     """Manages one multi-turn conversation with the Groq API."""
 
-    DEFAULT_SYSTEM_PROMPT = (
-        "You are a patient, knowledgeable tutor. Explain concepts clearly, "
-        "ask follow-up questions, and check the user's understanding as you go."
-    )
-
     def __init__(
         self,
-        model: str = "llama-3.3-70b-versatile",
-        system_prompt: Optional[str] = None,
-        log_dir: str = "logs",
+        model: str = MODEL,
+        system_prompt: str | None = None,
+        log_dir: str = DEFAULT_LOG_DIR,
     ) -> None:
         api_key = os.getenv("GROQ_API_KEY")
         if not api_key:
@@ -59,7 +48,7 @@ class ChatSession:
 
         self.client = Groq(api_key=api_key)
         self.model = model
-        self.system_prompt = system_prompt or self.DEFAULT_SYSTEM_PROMPT
+        self.system_prompt = system_prompt or DEFAULT_SYSTEM_PROMPT
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(parents=True, exist_ok=True)
 
@@ -71,18 +60,17 @@ class ChatSession:
     # ------------------------------------------------------------------
     # Conversation handling
     # ------------------------------------------------------------------
-    def send_message(self, user_input: str, on_chunk: Optional[Callable[[str], None]] = None) -> dict:
+    def send_message(self, user_input: str, on_chunk: Callable[[str | None], None] | None = None) -> dict:
         """Send a user message, stream the assistant's reply, and track tokens."""
-
-        self.messages.append({"role": "user", "content": user_input})
+        buf_messages = self.messages + [{"role":"user", "content": user_input}]
         prompt_tokens_est = count_tokens(user_input)
 
         full_reply = ""
         usage = None
 
         try:
-            stream = self.client.chat.completions.create( # type: ignore
-                messages=self.messages,
+            stream = self.client.chat.completions.create(       # type: ignore
+                messages=buf_messages,
                 model=self.model,
                 stream=True,
             )
@@ -108,6 +96,7 @@ class ChatSession:
         except APIStatusError as exc:
             raise RuntimeError(f"Groq API returned an error (status {exc.status_code}): {exc.message}") from exc
 
+        self.messages.append({"role": "user", "content": user_input})
         self.messages.append({"role": "assistant", "content": full_reply})
 
         if usage is not None:
@@ -137,10 +126,10 @@ class ChatSession:
     # ------------------------------------------------------------------
     # Persistence
     # ------------------------------------------------------------------
-    def save_log(self, fmt: str = "md") -> Path:
+    def save_log(self, fmt: LogFormat = LogFormat.MD) -> Path:
         """Write the full conversation to logs/{date}.md or .json."""
         date_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        if fmt == "json":
+        if fmt == LogFormat.JSON:
             path = self.log_dir / f"chat_{date_str}.json"
             payload = {
                 "session_started": self.session_started.isoformat(timespec="seconds"),

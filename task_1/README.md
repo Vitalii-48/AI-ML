@@ -35,23 +35,6 @@ task1/
 ```bash
 python app.py
 ```
-
-### Custom system prompt (bonus — `-prompt` CLI arg)
-
-```bash
-python app.py -prompt "You are a strict math professor."
-```
-
-### Other arguments
-
-```bash
-python app.py -model llama-3.1-8b-instant -log-format json
-```
-
-- `-prompt` — overrides the system prompt (default is the tutor prompt)
-- `-model` — Groq model to use (default: `llama-3.3-70b-versatile`)
-- `-log-format` — `md` (default) or `json`
-
 ## Sample prompts to test with
 
 - **Explain:** `Explain overfitting in simple terms.`
