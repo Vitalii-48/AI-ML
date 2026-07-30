@@ -1,32 +1,17 @@
 # task_1/app.py
 
 import sys
-
+from constants import MODEL, SYSTEM_PROMPT, LOG_FORMAT
 from dotenv import load_dotenv
+from rich.console import Console
+
 from chat_session import ChatSession
 
-try:
-    from rich.console import Console
-
-    console = Console()
-    _RICH = True
-except ImportError:  # rich is optional, plain print fallback
-    console = None
-    _RICH = False
-
-# --- Simple settings (edit these directly instead of passing CLI args) ---
-MODEL = "llama-3.3-70b-versatile"
-SYSTEM_PROMPT = None  # None -> uses ChatSession's default tutor prompt
-LOG_FORMAT = "md"  # "md" or "json"
+console = Console()
 
 
 def cprint(text: str, style: str = "") -> None:
-    if _RICH:
-        console.print(text, style=style)
-    else:
-        print(text)
-
-
+    console.print(text, style=style)
 
 
 def main() -> None:
@@ -57,7 +42,7 @@ def main() -> None:
 
         printed_header = False
 
-        def on_chunk(text: str) -> None:
+        def on_chunk(text: str | None) -> None:
             nonlocal printed_header
             if not printed_header:
                 print("Assistant: ", end="", flush=True)
