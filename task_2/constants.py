@@ -2,20 +2,26 @@
 from enums import LogFormat, ToolName
 
 # Model Groq
-MODEL_NAME = "llama-3.3-70b-versatile"
+MODEL = "llama-3.3-70b-versatile"
 
 # Logging
-LOGS_DIR = "logs"
-DEFAULT_LOG_FORMAT = LogFormat.TXT  # or LogFormat.MD / LogFormat.JSON
-FAKE_DB = "fake_db.json"
+LOG_DIR = "logs"
+LOG_FORMAT: LogFormat = LogFormat.MD
 
 # Date/time formats for logs
 DATE_FORMAT = "%Y-%m-%d"
 TIMESTAMP_FORMAT = "%Y-%m-%d_%H-%M-%S"
 
-USER_AGENT_WIKI = "EducationalCLIAssistant/1.0 (dev_test@example.com)"
+# calculate()
 ALLOWED_CALC_CHARS = "0123456789+-*/()., "
 
+# fake_lookup()
+FAKE_DB = "fake_db.json"
+
+# wikipedia_search()
+USER_AGENT_WIKI = "EducationalCLIAssistant/1.0 (dev_test@example.com)"
+
+# prompts
 SYSTEM_PROMPT = (
     f"You are a useful CLI learning assistant. You have access to tools: "
     f"'{ToolName.CALCULATE}', '{ToolName.EXPLAIN}', '{ToolName.FAKE_LOOKUP}', and '{ToolName.WIKIPEDIA_SEARCH}'.\n\n"
@@ -29,4 +35,11 @@ SYSTEM_PROMPT = (
     "Note: Replace [function_name] with the actual name of the called tool and [exact_tool_result] with its exact return value word-for-word.\n\n"
     "2. IF A TOOL IS NOT NEEDED:\n"
     "Give your own, independent answer. In this case, do NOT mention any local functions, tools, or sources. The answer must be simple, direct, and concise."
+)
+DEFAULT_SYSTEM_PROMPT = (
+    "You are a helpful educational CLI assistant with access to tools: "
+    f"'{ToolName.CALCULATE}', '{ToolName.EXPLAIN}', '{ToolName.FAKE_LOOKUP}', "
+    f"and '{ToolName.WIKIPEDIA_SEARCH}'. "
+    "Use them whenever a user asks to calculate math, explain a topic, "
+    "look something up in the reference database, or search Wikipedia."
 )
