@@ -1,12 +1,12 @@
 # task_3\llm.py
 import os
-from typing import List, Tuple
 
 from dotenv import load_dotenv
 from groq import Groq
 from groq.types.chat import ChatCompletionUserMessageParam
 
 from constants import DEFAULT_LLM_MODEL
+from prompts import build_answer_prompt, build_quiz_prompt
 from vector_store import VectorStore
 
 load_dotenv()
@@ -20,7 +20,7 @@ if not api_key:
 client = Groq(api_key=api_key)
 
 
-def build_context(store: VectorStore, search_results: List[Tuple[int, float]]) -> str:
+def build_context(store: VectorStore, search_results: list[tuple[int, float]]) -> str:
     """Generates textual context from top search results — with source numbering."""
     context_parts: list[str] = []
     for rank, (idx, _) in enumerate(search_results, start=1):
@@ -37,32 +37,12 @@ def build_context(store: VectorStore, search_results: List[Tuple[int, float]]) -
 def generate_answer(
     store: VectorStore,
     query: str,
-    search_results: List[Tuple[int, float]],
+    search_results: list[tuple[int, float]],
     model: str = DEFAULT_LLM_MODEL,
 ) -> str | None:
     """Generate an answer using retrieved documents."""
     context = build_context(store, search_results)
-
-    prompt = f"""
-You are a helpful study assistant.
-
-Answer the question using ONLY the provided context.
-
-If the answer is not in the context, say:
-"I don't have enough information in the provided context."
-
-When possible, mention which source(s) you used in your answer.
-For example:
-"According to python (paragraph 4)..."
-
-Context:
-{context}
-
-Question:
-{query}
-
-Answer:
-"""
+    prompt = build_answer_prompt(context=context, query=query)
 
     messages: list[ChatCompletionUserMessageParam] = [
         {"role": "user", "content": prompt}
@@ -81,24 +61,14 @@ Answer:
 
 def generate_quiz_question(
     store: VectorStore,
-    search_results: List[Tuple[int, float]],
+    search_results: list[tuple[int, float]],
     model: str = DEFAULT_LLM_MODEL,
 ) -> str | None:
     """Generate one short quiz question based on the top retrieved match (Study Mode)."""
     top_result = search_results[:1]
     context = build_context(store, top_result)
 
-    prompt = f"""
-You are a study assistant helping the user practice what they just learned.
-
-Based ONLY on the context below, write exactly ONE short quiz question
-that checks understanding of the material. Do not answer it yourself.
-
-Context:
-{context}
-
-Quiz question:
-"""
+    prompt = build_quiz_prompt(context=context)
 
     messages: list[ChatCompletionUserMessageParam] = [
         {"role": "user", "content": prompt}

@@ -1,9 +1,18 @@
 # task_3\semantic_search_day3.py
 import argparse
+import sys
+
+from rich.console import Console
 
 from constants import DEFAULT_KNOWLEDGE_DIR, DEFAULT_LLM_MODEL, DEFAULT_TOP_N
 from llm import generate_answer, generate_quiz_question
 from vector_store import VectorStore
+
+
+console = Console(force_terminal=True)
+
+def cprint(text: str, style: str = "") -> None:
+    console.print(text, style=style)
 
 
 def parse_args() -> argparse.Namespace:
@@ -14,24 +23,24 @@ def parse_args() -> argparse.Namespace:
         "--knowledge",
         type=str,
         default=DEFAULT_KNOWLEDGE_DIR,
-        help=f"Шлях до папки з базою знань (default: {DEFAULT_KNOWLEDGE_DIR})",
+        help=f"Path to the knowledge base folder (default: {DEFAULT_KNOWLEDGE_DIR})",
     )
     parser.add_argument(
         "--top-n",
         type=int,
         default=DEFAULT_TOP_N,
-        help=f"Скільки топ-збігів шукати для кожного питання (default: {DEFAULT_TOP_N})",
+        help=f"How many top matches to search for each question (default: {DEFAULT_TOP_N})",
     )
     parser.add_argument(
         "--model",
         type=str,
         default=DEFAULT_LLM_MODEL,
-        help=f"Назва Groq-моделі для генерації відповідей (default: {DEFAULT_LLM_MODEL})",
+        help=f"Name of the Groq model for generating responses (default: {DEFAULT_LLM_MODEL})",
     )
     parser.add_argument(
         "--no-quiz",
         action="store_true",
-        help="Вимкнути Study Mode (не показувати quiz-питання після відповіді)",
+        help="Disable Study Mode (do not show quiz questions after answering)",
     )
 
     return parser.parse_args()
@@ -40,44 +49,49 @@ def parse_args() -> argparse.Namespace:
 def main():
     args = parse_args()
 
-    store = VectorStore()
-    store.add_documents(args.knowledge)
+    try:
+        store = VectorStore()
+        store.add_documents(args.knowledge)
+    except EnvironmentError as exc:
+        cprint(f"[error] {exc}", style="bold red")
+        sys.exit(1)
 
-    print("=" * 60)
-    print("Study Assistant")
-    print("=" * 60)
-    print("Hi! I'm your study assistant.")
-    print("Ask me anything about Python, biology, economics,")
-    print("or world countries, and I'll answer using my knowledge base.")
-    print("\n[INFO] Type 'exit' or 'quit' to end the session.\n")
+
+    cprint("=" * 60)
+    cprint("Study Assistant")
+    cprint("=" * 60)
+    cprint("Hi! I'm your study assistant.")
+    cprint("Ask me anything about Python, biology, economics,")
+    cprint("or world countries, and I'll answer using my knowledge base.")
+    cprint("\n[INFO] Type 'exit' or 'quit' to end the session.\n")
 
     while True:
         query = input("> You: ").strip()
 
         if query.lower() in ("exit", "quit"):
-            print("\nGoodbye!")
+            cprint("\nGoodbye!", style="bold green")
             break
 
         if not query:
-            print("Please enter a question.\n")
+            cprint("Please enter a question.\n")
             continue
 
         results = store.search(query, top_n=args.top_n)
 
-        print("\n-> Top matches:")
+        cprint("\n-> Top matches:")
         for rank, (idx, score) in enumerate(results, start=1):
             doc = store.get_by_id(idx)
-            print(
+            cprint(
                 f"{rank}. [{doc['source']} | Paragraph {doc['chunk']}] "
                 f"(score={score:.3f}) {doc['text'][:80]}..."
             )
 
         answer = generate_answer(store, query, results, model=args.model)
-        print(f"\n-> GPT says:\n{answer}")
+        cprint(f"\n-> GPT says:\n{answer}")
 
         if not args.no_quiz:
             quiz_question = generate_quiz_question(store, results, model=args.model)
-            print(f"\n Quick check:\n{quiz_question}")
+            cprint(f"\n Quick check:\n{quiz_question}", style="bold blue")
         print()
 
 
