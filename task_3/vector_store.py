@@ -1,4 +1,3 @@
-# task_3\vector_store.py
 from pathlib import Path
 
 import numpy as np
@@ -50,11 +49,16 @@ class VectorStore:
         """Load documents and create normalized embeddings."""
         self.documents = self.load_documents(folder)
 
+        if not self.documents:
+            self.embeddings = None
+            return
+
         embeddings = self.model.encode(
             [doc["text"] for doc in self.documents]
         )
 
-        # Normalize embeddings once
+        # Normalize embeddings once, so cosine similarity reduces to a
+        # plain dot product at search time.
         self.embeddings = embeddings / np.linalg.norm(
             embeddings,
             axis=1,

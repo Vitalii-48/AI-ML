@@ -1,4 +1,3 @@
-# task_3\models.py
 from typing import TypedDict
 
 

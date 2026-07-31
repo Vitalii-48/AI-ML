@@ -1,22 +1,18 @@
-# task_3\semantic_search_day3.py
 import argparse
 import sys
 
-from rich.console import Console
-
-from constants import DEFAULT_KNOWLEDGE_DIR, DEFAULT_LLM_MODEL, DEFAULT_TOP_N
-from llm import generate_answer, generate_quiz_question
-from vector_store import VectorStore
-
-
-console = Console(force_terminal=True)
-
-def cprint(text: str, style: str = "") -> None:
-    console.print(text, style=style)
+from constants import (
+    DEFAULT_KNOWLEDGE_DIR,
+    DEFAULT_LLM_MODEL,
+    DEFAULT_LOG_FORMAT,
+    DEFAULT_TOP_N,
+)
+from enums import LogFormat
+from chat_session import StudySession
 
 
 def parse_args() -> argparse.Namespace:
-    """Parses command line arguments."""
+    """Parse command-line arguments."""
     parser = argparse.ArgumentParser(description="Study Assistant — semantic search + RAG")
 
     parser.add_argument(
@@ -29,70 +25,80 @@ def parse_args() -> argparse.Namespace:
         "--top-n",
         type=int,
         default=DEFAULT_TOP_N,
-        help=f"How many top matches to search for each question (default: {DEFAULT_TOP_N})",
+        help=f"Number of top matches to retrieve per question (default: {DEFAULT_TOP_N})",
     )
     parser.add_argument(
         "--model",
         type=str,
         default=DEFAULT_LLM_MODEL,
-        help=f"Name of the Groq model for generating responses (default: {DEFAULT_LLM_MODEL})",
+        help=f"Groq model used for answers and quiz questions (default: {DEFAULT_LLM_MODEL})",
     )
     parser.add_argument(
         "--no-quiz",
         action="store_true",
-        help="Disable Study Mode (do not show quiz questions after answering)",
+        help="Disable Study Mode (skip the quiz question after each answer)",
+    )
+    parser.add_argument(
+        "--log-format",
+        type=str,
+        choices=[fmt.value for fmt in LogFormat],
+        default=DEFAULT_LOG_FORMAT.value,
+        help=f"Session log format (default: {DEFAULT_LOG_FORMAT.value})",
     )
 
     return parser.parse_args()
 
 
-def main():
+def main() -> None:
     args = parse_args()
 
     try:
-        store = VectorStore()
-        store.add_documents(args.knowledge)
+        session = StudySession(knowledge_dir=args.knowledge, model=args.model)
     except EnvironmentError as exc:
-        cprint(f"[error] {exc}", style="bold red")
+        print(f"[error] {exc}")
         sys.exit(1)
 
-
-    cprint("=" * 60)
-    cprint("Study Assistant")
-    cprint("=" * 60)
-    cprint("Hi! I'm your study assistant.")
-    cprint("Ask me anything about Python, biology, economics,")
-    cprint("or world countries, and I'll answer using my knowledge base.")
-    cprint("\n[INFO] Type 'exit' or 'quit' to end the session.\n")
+    print("=" * 60)
+    print("Study Assistant")
+    print("=" * 60)
+    print("Hi! I'm your study assistant.")
+    print("Ask me anything about Python, biology, economics,")
+    print("or world countries, and I'll answer using my knowledge base.")
+    print("\n[INFO] Type 'exit' or 'quit' to end the session.\n")
 
     while True:
         query = input("> You: ").strip()
 
         if query.lower() in ("exit", "quit"):
-            cprint("\nGoodbye!", style="bold green")
+            print("\nGoodbye!")
             break
 
         if not query:
-            cprint("Please enter a question.\n")
+            print("Please enter a question.\n")
             continue
 
-        results = store.search(query, top_n=args.top_n)
+        try:
+            turn = session.ask(query, top_n=args.top_n, want_quiz=not args.no_quiz)
+        except RuntimeError as exc:
+            print(f"\n[error] {exc}\n")
+            continue
 
-        cprint("\n-> Top matches:")
-        for rank, (idx, score) in enumerate(results, start=1):
-            doc = store.get_by_id(idx)
-            cprint(
-                f"{rank}. [{doc['source']} | Paragraph {doc['chunk']}] "
-                f"(score={score:.3f}) {doc['text'][:80]}..."
+        print("\n-> Top matches:")
+        for rank, match in enumerate(turn["matches"], start=1):
+            print(
+                f"{rank}. [{match['source']} | Paragraph {match['chunk']}] "
+                f"(score={match['score']:.3f})"
             )
 
-        answer = generate_answer(store, query, results, model=args.model)
-        cprint(f"\n-> GPT says:\n{answer}")
+        print(f"\n-> GPT says:\n{turn['assistant']}")
 
-        if not args.no_quiz:
-            quiz_question = generate_quiz_question(store, results, model=args.model)
-            cprint(f"\n Quick check:\n{quiz_question}", style="bold blue")
+        if turn["quiz_question"]:
+            print(f"\nQuick check:\n{turn['quiz_question']}")
         print()
+
+    log_path = session.save_log(fmt=LogFormat(args.log_format))
+    print(f"[Session saved to {log_path}]")
+    print(session.summary())
 
 
 if __name__ == "__main__":
