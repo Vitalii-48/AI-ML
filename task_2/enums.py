@@ -1,9 +1,9 @@
 # task_2/constants.py
 from enum import Enum
 
-class Role(str, Enum):
-    """Ролі повідомлень у форматі Groq/OpenAI chat API."""
 
+class Role(str, Enum):
+    """Chat message roles used with the Groq API."""
     SYSTEM = "system"
     USER = "user"
     ASSISTANT = "assistant"
@@ -11,8 +11,7 @@ class Role(str, Enum):
 
 
 class ToolName(str, Enum):
-    """Назви інструментів, які може викликати модель"""
-
+    """Names of tools available to the assistant."""
     CALCULATE = "calculate"
     EXPLAIN = "explain"
     FAKE_LOOKUP = "fake_lookup"
@@ -20,8 +19,7 @@ class ToolName(str, Enum):
 
 
 class LogFormat(str, Enum):
-    """Формат файлу логів для log_tool_call."""
-
+    """Supported formats for writing logs to disk."""
     TXT = "txt"
     MD = "md"
     JSON = "json"
