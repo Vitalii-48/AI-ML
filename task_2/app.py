@@ -37,7 +37,7 @@ def main() -> None:
             print(text, end="", flush=True)
 
         try:
-            turn = session.send_message(user_input, on_chunk=on_chunk)
+            session.send_message(user_input, on_chunk=on_chunk)
         except RuntimeError as exc:
             print(f"\nError: {exc}")
             continue
