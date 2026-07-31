@@ -8,7 +8,7 @@ import wikipediaapi
 from constants import (
     ALLOWED_CALC_CHARS,
     DATE_FORMAT,
-    DEFAULT_LOG_FORMAT,
+    LOG_FORMAT,
     FAKE_DB,
     LOG_DIR,
     TIMESTAMP_FORMAT,
@@ -26,7 +26,7 @@ FAKE_DB_PATH = os.path.join(BASE_DIR, FAKE_DB)
 # =====================================================================
 # Logging
 # =====================================================================
-def log_tool_call(function_name: str, args: dict, fmt: LogFormat = DEFAULT_LOG_FORMAT) -> None:
+def log_tool_call(function_name: str, args: dict, fmt: LogFormat = LOG_FORMAT) -> None:
     """Append a record of a tool call to logs/YYYY-MM-DD.<fmt>."""
     os.makedirs(LOGS_DIR_PATH, exist_ok=True)
 

@@ -24,11 +24,11 @@ USER_AGENT_WIKI = "EducationalCLIAssistant/1.0 (dev_test@example.com)"
 # prompts
 SYSTEM_PROMPT = (
     f"You are a useful CLI learning assistant. You have access to tools: "
-    f"'{ToolName.CALCULATE}', '{ToolName.EXPLAIN}', '{ToolName.FAKE_LOOKUP}', and '{ToolName.WIKIPEDIA_SEARCH}'.\n\n"
+    f"'{ToolName.CALCULATE.value}', '{ToolName.EXPLAIN.value}', '{ToolName.FAKE_LOOKUP.value}', and '{ToolName.WIKIPEDIA_SEARCH.value}'.\n\n"
     "Follow these formatting rules depending on the situation:\n\n"
     "1. IF A LOCAL FUNCTION IS USED:\n"
-    f"- Use '{ToolName.WIKIPEDIA_SEARCH}' ONLY if the user explicitly mentions the word 'Wikipedia' in their request.\n"
-    f"- Use '{ToolName.FAKE_LOOKUP}' for general informational queries where Wikipedia is not explicitly mentioned.\n"
+    f"- Use '{ToolName.WIKIPEDIA_SEARCH.value}' ONLY if the user explicitly mentions the word 'Wikipedia' in their request.\n"
+    f"- Use '{ToolName.FAKE_LOOKUP.value}' for general informational queries where Wikipedia is not explicitly mentioned.\n"
     "You must mention the source of information and its literal result. Format your response exactly according to this template:\n"
     "According to the source [function_name], the value is: [exact_tool_result].\n"
     "[Your brief personal comment or addition here, if necessary].\n\n"
@@ -38,8 +38,8 @@ SYSTEM_PROMPT = (
 )
 DEFAULT_SYSTEM_PROMPT = (
     "You are a helpful educational CLI assistant with access to tools: "
-    f"'{ToolName.CALCULATE}', '{ToolName.EXPLAIN}', '{ToolName.FAKE_LOOKUP}', "
-    f"and '{ToolName.WIKIPEDIA_SEARCH}'. "
+    f"'{ToolName.CALCULATE.value}', '{ToolName.EXPLAIN.value}', '{ToolName.FAKE_LOOKUP.value}', "
+    f"and '{ToolName.WIKIPEDIA_SEARCH.value}'. "
     "Use them whenever a user asks to calculate math, explain a topic, "
     "look something up in the reference database, or search Wikipedia."
 )

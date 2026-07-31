@@ -27,6 +27,8 @@ def main() -> None:
             continue
         if user_input.lower() in {"exit", "quit"}:
             print("Goodbye!")
+            session.save_log()
+            print(session.summary())
             break
 
         print("Assistant: ", end="", flush=True)
@@ -40,10 +42,7 @@ def main() -> None:
             print(f"\nError: {exc}")
             continue
 
-        print(f"\n[Tokens used: {turn['turn_tokens']} | Total so far: {turn['total_tokens_so_far']}]\n")
-
-    session.save_log()
-    print(session.summary())
+        print("\n")
 
 
 if __name__ == "__main__":

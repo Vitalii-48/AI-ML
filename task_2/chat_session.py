@@ -98,12 +98,7 @@ class ChatSession:
 
     @staticmethod
     def _assistant_tool_call_message(response_message) -> dict:
-        """Build a plain dict for the assistant's tool-call message.
-
-        We construct this by hand instead of using response_message.model_dump(),
-        because model_dump() includes extra SDK-specific fields that the Groq
-        API rejects with a 400 error when sent back in the next request.
-        """
+        """Build a plain dict for the assistant's tool-call message."""
         return {
             "role": Role.ASSISTANT.value,
             "content": response_message.content,
@@ -125,13 +120,7 @@ class ChatSession:
     # ------------------------------------------------------------------
     def send_message(self, user_input: str, on_chunk: Callable[[str | None], None] | None = None) -> dict:
         """Send a user message, letting the model call tools if it needs to,
-        then stream the final reply and track tokens.
-
-        self.messages is only updated at the very end, after everything
-        succeeds. If any API call fails partway through, self.messages is
-        left untouched, so the conversation history never ends up in a
-        broken, half-finished state.
-        """
+        then stream the final reply and track tokens."""
         pending_messages = self.messages + [{"role": Role.USER.value, "content": user_input}]
         prompt_tokens_est = count_tokens(user_input)
         usage = None
