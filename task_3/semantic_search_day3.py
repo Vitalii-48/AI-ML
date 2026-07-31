@@ -86,8 +86,8 @@ def main() -> None:
         print("\n-> Top matches:")
         for rank, match in enumerate(turn["matches"], start=1):
             print(
-                f"{rank}. [{match['source']} | Paragraph {match['chunk']}] "
-                f"(score={match['score']:.3f})"
+                f"{rank}. [{match.source} | Paragraph {match['chunk']}] "
+                f"(score={match.score:.3f})"
             )
 
         print(f"\n-> GPT says:\n{turn['assistant']}")

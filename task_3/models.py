@@ -1,9 +1,9 @@
-from typing import TypedDict
+from pydantic import BaseModel, Field
 
 
-class Document(TypedDict):
-    """A single paragraph (chunk) from the knowledge base along with source metadata."""
+class Document(BaseModel):
+    """A single paragraph (chunk) from a document."""
 
-    text: str
-    source: str
-    chunk: int
+    text: str = Field(..., description="Content of the document paragraph")
+    source: str = Field(..., description="Source file name")
+    chunk: int = Field(..., description="Paragraph index/number")

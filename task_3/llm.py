@@ -21,9 +21,9 @@ def build_context(store: VectorStore, search_results: list[tuple[int, float]]) -
         doc = store.get_by_id(idx)
         context_parts.append(
             f"Source {rank}\n"
-            f"File: {doc['source']}\n"
-            f"Paragraph: {doc['chunk']}\n"
-            f"{doc['text']}"
+            f"File: {doc.source}\n"
+            f"Paragraph: {doc.chunk}\n"
+            f"{doc.text}"
         )
     return "\n\n".join(context_parts)
 

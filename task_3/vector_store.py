@@ -36,11 +36,11 @@ class VectorStore:
 
                     if paragraph:
                         documents.append(
-                            {
-                                "text": paragraph,
-                                "source": file_path.stem,
-                                "chunk": paragraph_number,
-                            }
+                            Document(
+                                text=paragraph,
+                                source=file_path.stem,
+                                chunk=paragraph_number,
+                            )
                         )
 
         return documents
@@ -54,7 +54,7 @@ class VectorStore:
             return
 
         embeddings = self.model.encode(
-            [doc["text"] for doc in self.documents]
+            [doc.text for doc in self.documents]
         )
 
         # Normalize embeddings once, so cosine similarity reduces to a
