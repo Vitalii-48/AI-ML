@@ -1,9 +1,8 @@
-# task_3\models.py
-from typing import TypedDict
+from pydantic import BaseModel
 
 
-class Document(TypedDict):
-    """A single paragraph (chunk) from the knowledge base along with source metadata."""
+class Document(BaseModel):
+    """A single paragraph (chunk) from a document."""
 
     text: str
     source: str
