@@ -1,17 +1,14 @@
 from __future__ import annotations
 
 import json
-import os
 from datetime import datetime
 from pathlib import Path
 
 import tiktoken
-from dotenv import load_dotenv
-from groq import Groq
 
 from constants import DEFAULT_LOG_DIR, DEFAULT_LOG_FORMAT, DEFAULT_LLM_MODEL
 from enums import LogFormat
-from llm import generate_answer, generate_quiz_question
+from llm import LLMService
 from vector_store import VectorStore
 
 _ENCODER = tiktoken.get_encoding("cl100k_base")
@@ -25,7 +22,7 @@ def count_tokens(text: str) -> int:
 
 
 class StudySession:
-    """Owns the VectorStore, the Groq client, and the history of turns."""
+    """Owns the VectorStore and the history of turns."""
 
     def __init__(
         self,
@@ -33,19 +30,13 @@ class StudySession:
         model: str = DEFAULT_LLM_MODEL,
         log_dir: str = DEFAULT_LOG_DIR,
     ) -> None:
-        load_dotenv()
-        api_key = os.getenv("GROQ_API_KEY")
-        if not api_key:
-            raise EnvironmentError(
-                "GROQ_API_KEY is not set. Create a .env file with "
-                "GROQ_API_KEY=<your key> next to this script."
-            )
 
-        self.client = Groq(api_key=api_key)
         self.model = model
 
         self.store = VectorStore()
         self.store.add_documents(knowledge_dir)
+
+        self.llm_service = LLMService(model=self.model)
 
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(parents=True, exist_ok=True)
@@ -58,11 +49,11 @@ class StudySession:
         """Run one full turn: search -> answer -> (optional) quiz question."""
         results = self.store.search(query, top_n=top_n)
 
-        answer = generate_answer(self.client, self.store, query, results, model=self.model)
+        answer = self.llm_service.generate_answer(self.store, query, results)
 
         quiz_question = None
         if want_quiz and results:
-            quiz_question = generate_quiz_question(self.client, self.store, results, model=self.model)
+            quiz_question = self.llm_service.generate_quiz_question(self.store, results)
 
         turn_tokens = count_tokens(query) + count_tokens(answer) + count_tokens(quiz_question or "")
         self.total_tokens += turn_tokens
