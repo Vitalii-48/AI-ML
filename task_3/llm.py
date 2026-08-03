@@ -9,7 +9,6 @@ from groq import Groq
 from groq.types.chat import ChatCompletionUserMessageParam
 
 from constants import DEFAULT_LLM_MODEL
-from enums import Role
 from prompts import build_answer_prompt, build_quiz_prompt
 from vector_store import VectorStore
 
@@ -35,7 +34,7 @@ def _call_llm(client: Groq, prompt: str, model: str) -> str:
     failure mode, instead of catching a bare Exception.
     """
     messages: list[ChatCompletionUserMessageParam] = [
-        {"role": Role.USER.value, "content": prompt}
+        {"role": "user", "content": prompt}
     ]
 
     try:

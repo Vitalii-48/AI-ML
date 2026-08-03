@@ -1,9 +1,9 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class Document(BaseModel):
     """A single paragraph (chunk) from a document."""
 
-    text: str = Field(..., description="Content of the document paragraph")
-    source: str = Field(..., description="Source file name")
-    chunk: int = Field(..., description="Paragraph index/number")
+    text: str
+    source: str
+    chunk: int

@@ -72,8 +72,8 @@ class StudySession:
             "user": query,
             "matches": [
                 {
-                    "source": self.store.get_by_id(idx)["source"],
-                    "chunk": self.store.get_by_id(idx)["chunk"],
+                    "source": self.store.get_by_id(idx).source,
+                    "chunk": self.store.get_by_id(idx).chunk,
                     "score": score,
                 }
                 for idx, score in results
