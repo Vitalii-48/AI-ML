@@ -17,7 +17,7 @@ task_3/
 ├── llm.py                   # Groq API interaction & prompt builders
 ├── constants.py             # Centralized settings & file extension patterns
 ├── enums.py                 # Enums (LogFormat, Role)
-├── models.py                # TypedDict schemas (Document)
+├── models.py                # pydantic schemas (Document)
 ├── prompts.py               # Centralized prompt templates & builder functions
 ├── knowledge/               # Knowledge base (.txt files)
 ├── logs/                    # Generated markdown/JSON session logs
