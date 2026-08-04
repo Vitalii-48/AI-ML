@@ -9,10 +9,10 @@ from groq import (
     RateLimitError,
 )
 from groq import Groq
-from groq.types.chat import ChatCompletionUserMessageParam
+from groq.types.chat import ChatCompletionUserMessageParam, ChatCompletionMessageParam
 
 from constants import DEFAULT_LLM_MODEL
-from prompts import build_answer_prompt, build_quiz_prompt
+from prompts import SYSTEM_PROMPT, build_answer_prompt, build_quiz_prompt
 from vector_store import VectorStore
 
 
@@ -28,30 +28,20 @@ class LLMService:
             )
 
         self.client = Groq(api_key=api_key)
+        self.messages: list[ChatCompletionMessageParam] = [
+            {
+                "role": "system",
+                "content": SYSTEM_PROMPT,
+            }
+        ]
 
-    @staticmethod
-    def build_context(store: VectorStore, search_results: list[tuple[int, float]]) -> str:
-        """Build a numbered-source text context from the top search results."""
-        context_parts: list[str] = []
-        for rank, (idx, _) in enumerate(search_results, start=1):
-            doc = store.get_by_id(idx)
-            context_parts.append(
-                f"Source {rank}\n"
-                f"File: {doc.source}\n"
-                f"Paragraph: {doc.chunk}\n"
-                f"{doc.text}"
-            )
-        return "\n\n".join(context_parts)
 
-    def _call_llm(self, prompt: str) -> str:
+    def _call_llm(self, messages: list[ChatCompletionUserMessageParam]) -> str:
         """Send a single-message prompt to Groq and return the reply text.
 
         Raises RuntimeError with a clear, specific message for each known
         failure mode, instead of catching a bare Exception.
         """
-        messages: list[ChatCompletionUserMessageParam] = [
-            {"role": "user", "content": prompt}
-        ]
 
         try:
             response = self.client.chat.completions.create(
@@ -78,9 +68,13 @@ class LLMService:
             search_results: list[tuple[int, float]],
     ) -> str:
         """Generate an answer to `query` using only the retrieved documents."""
-        context = self.build_context(store, search_results)
+        context = store.build_context(search_results)
         prompt = build_answer_prompt(context=context, query=query)
-        return self._call_llm(prompt)
+        messages = self.messages + [{"role": "user", "content": prompt}]
+        answer = self._call_llm(messages)
+        self.messages.append({"role": "user", "content": prompt})
+        self.messages.append({"role": "assistant", "content": answer})
+        return answer
 
     def generate_quiz_question(
             self,
@@ -89,7 +83,7 @@ class LLMService:
     ) -> str:
         """Generate one short quiz question based on the single top match (Study Mode)."""
         top_result = search_results[:1]
-        context = self.build_context(store, top_result)
+        context = store.build_context(top_result)
         prompt = build_quiz_prompt(context=context)
-        return self._call_llm(prompt)
+        return self._call_llm([{"role": "user", "content": prompt}])
 

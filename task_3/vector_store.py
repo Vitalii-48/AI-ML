@@ -88,3 +88,16 @@ class VectorStore:
     def get_by_id(self, doc_id: int) -> Document:
         """Return a document by its index."""
         return self.documents[doc_id]
+
+    def build_context(self, search_results: list[tuple[int, float]]) -> str:
+        """Build a numbered-source text context from the top search results."""
+        context_parts: list[str] = []
+        for rank, (idx, _) in enumerate(search_results, start=1):
+            doc = self.get_by_id(idx)
+            context_parts.append(
+                f"Source {rank}\n"
+                f"File: {doc.source}\n"
+                f"Paragraph: {doc.chunk}\n"
+                f"{doc.text}"
+            )
+        return "\n\n".join(context_parts)

@@ -1,7 +1,7 @@
-ANSWER_PROMPT = """
+SYSTEM_PROMPT = """
 You are a helpful study assistant.
 
-Answer the question using ONLY the provided context.
+Answer questions using ONLY the provided context.
 
 If the answer is not in the context, say:
 "I don't have enough information in the provided context."
@@ -9,7 +9,9 @@ If the answer is not in the context, say:
 When possible, mention which source(s) you used in your answer.
 For example:
 "According to python (paragraph 4)..."
+"""
 
+ANSWER_PROMPT = """
 Context:
 {context}
 
