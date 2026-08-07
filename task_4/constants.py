@@ -11,4 +11,4 @@ AUDIO_DIR = SCRIPT_DIR / "audio"
 DEFAULT_LLM_MODEL = "llama-3.3-70b-versatile"
 
 # Whisper model used for audio transcription.
-DEFAULT_WHISPER_MODEL = "whisper-large-v3"
+DEFAULT_WHISPER_MODEL = "whisper-large-v3-turbo"

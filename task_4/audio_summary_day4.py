@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from pydantic import ValidationError
+
 from audio_llm import AudioLLMService
 from constants import (
     DEFAULT_LLM_MODEL,
@@ -9,16 +11,20 @@ from constants import (
 
 
 def main():
-    service = AudioLLMService(
-        llm_model=DEFAULT_LLM_MODEL,
-        whisper_model=DEFAULT_WHISPER_MODEL,
-    )
+    try:
+        service = AudioLLMService(
+            llm_model=DEFAULT_LLM_MODEL,
+            whisper_model=DEFAULT_WHISPER_MODEL,
+        )
+    except ValidationError:
+        print("[error] GROQ_API_KEY is not set. Check your .env file.")
+        return
 
     print(f"Audio Assistant {DEFAULT_LLM_MODEL}")
     print()
     print("Hi! I'm your audio assistant.")
     print("I can transcribe and analyze audio files.")
-    print("Enter the name of the audio files")
+    print("Enter the name of the audio files from the 'audio' folder")
 
     while True:
         query = input("> You ").strip()
@@ -28,7 +34,7 @@ def main():
             break
 
         if not query:
-            print("Please enter an audio filename from the 'samples' folder.\n")
+            print("Please enter an audio filename from the 'audio' folder.\n")
             continue
 
         file_path = AUDIO_DIR / query

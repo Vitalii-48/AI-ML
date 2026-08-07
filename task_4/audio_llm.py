@@ -48,8 +48,15 @@ class AudioLLMService:
                     file=audio_file,
                     model=self.whisper_model,
                 )
-        except Exception as exc:
+        except (
+            AuthenticationError,
+            RateLimitError,
+            APITimeoutError,
+            APIConnectionError,
+            APIStatusError,
+        ) as exc:
             self._handle_api_exception(exc)
+
         return transcription.text
 
     def summarize(self, transcript: str) -> str:
@@ -67,7 +74,14 @@ class AudioLLMService:
                 messages=messages,
                 temperature=0.3,
             )
-        except Exception as exc:
+
+        except (
+            AuthenticationError,
+            RateLimitError,
+            APITimeoutError,
+            APIConnectionError,
+            APIStatusError,
+        ) as exc:
             self._handle_api_exception(exc)
 
         content = response.choices[0].message.content
