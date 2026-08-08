@@ -1,4 +1,4 @@
-from pathlib import Path
+import argparse
 
 from pydantic import ValidationError
 
@@ -8,9 +8,26 @@ from constants import (
     DEFAULT_WHISPER_MODEL,
     AUDIO_DIR
 )
+from enums import Mode
+
+
+def parse_args() -> argparse.Namespace:
+    """Parse command-line arguments."""
+    parser = argparse.ArgumentParser(description="Audio Assistant — transcription and processing")
+
+    parser.add_argument(
+        "--mode",
+        choices=[m.value for m in Mode],
+        default=Mode.SUMMARY.value,
+        help="Operation to perform on the transcript.",
+    )
+
+    return parser.parse_args()
 
 
 def main():
+    args = parse_args()
+
     try:
         service = AudioLLMService(
             llm_model=DEFAULT_LLM_MODEL,
@@ -24,10 +41,10 @@ def main():
     print()
     print("Hi! I'm your audio assistant.")
     print("I can transcribe and analyze audio files.")
-    print("Enter the name of the audio files from the 'audio' folder")
+    print("Enter the name of the audio files from the 'audio' folder, for example test_audio1.mp3")
 
     while True:
-        query = input("> You ").strip()
+        query = input("> You: ").strip()
 
         if query.lower() in ("exit", "quit", "q"):
             print("Goodbye!")
@@ -46,8 +63,10 @@ def main():
             transcript = service.transcribe(file_path)
             print(transcript)
 
-            summary = service.summarize(transcript)
-            print(summary)
+            mode = Mode(args.mode)
+            result = service.process_transcript(transcript, mode=mode)
+            print(f"result of work mode: {mode.value}")
+            print(result)
 
         except RuntimeError as exc:
             print(f"\n[error] {exc}\n")

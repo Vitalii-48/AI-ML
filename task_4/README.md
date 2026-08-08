@@ -13,6 +13,7 @@ task_4/
 ├── audio_llm.py             # AudioLLMService (Whisper + LLM)
 ├── settings.py              # Pydantic Settings
 ├── constants.py             # Centralized configuration
+├── enums.py                 # Mode enum (summary/extract_keywords/generate_title/qna)
 ├── prompts.py               # Prompt templates & builder functions
 ├── audio/                   # Input audio files
 ├── requirements.txt
@@ -39,6 +40,10 @@ GROQ_API_KEY=your_groq_api_key_here
 python audio_summary_day4.py
 ```
 
+```bash
+python audio_summary_day4.py --mode qna
+```
+
 ## Conversation flow
 
 1. Place an audio file (`.mp3`, `.wav`, or `.m4a`) into the `audio/` folder.
@@ -58,6 +63,7 @@ python audio_summary_day4.py
 - ✅ Centralized prompts and constants
 - ✅ `pathlib.Path` for file handling
 - ✅ Graceful API error handling
+- ✅ Multiple processing modes (summary, extract_keywords, generate_title, qna)
 
 ## Error handling
 
@@ -78,25 +84,21 @@ Audio Assistant llama-3.3-70b-versatile
 
 Hi! I'm your audio assistant.
 I can transcribe and analyze audio files.
-Place your audio files in the "audio" folder and enter the filename.
+Enter the name of the audio files from the 'audio' folder, for example test_audio1.mp3
+> You: test_audio1.mp3
+ Hi. I'm doing an internship. I need to create a test audio file for my fourth task. Could you generate an English voice recording of this text?
+result of work mode: qna
+Q1: What is the speaker currently doing?
+A1: The speaker is doing an internship.
 
-> You: lecture.mp3
+Q2: What is the speaker's current task?
+A2: The speaker's current task is their fourth task.
 
-Transcript:
-Machine learning models can generalize better when trained on diverse datasets...
+Q3: What does the speaker need to create for their task?
+A3: The speaker needs to create a test audio file.
 
-Summary:
-
-The recording explains how dataset diversity improves model generalization.
-It discusses the importance of representative training data and reducing bias.
-
-Key points:
-
-- Diverse datasets improve generalization.
-- Better coverage reduces model bias.
-- Representative data leads to more robust predictions.
-
+Q4: What language should the voice recording be in?
+A4: The voice recording should be in English.
 > You: exit
-
 Goodbye!
 ```
