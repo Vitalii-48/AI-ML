@@ -27,6 +27,7 @@ def parse_args() -> argparse.Namespace:
 
 def main():
     args = parse_args()
+    mode = Mode(args.mode)
 
     try:
         service = AudioLLMService(
@@ -63,10 +64,10 @@ def main():
             transcript = service.transcribe(file_path)
             print(transcript)
 
-            mode = Mode(args.mode)
             result = service.process_transcript(transcript, mode=mode)
             print(f"result of work mode: {mode.value}")
             print(result)
+
 
         except RuntimeError as exc:
             print(f"\n[error] {exc}\n")
