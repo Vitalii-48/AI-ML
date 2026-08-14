@@ -14,15 +14,16 @@ Your task is to:
 Transcript:
 {transcript}
 
-Output format:
+Return the result as valid JSON using exactly this structure:
 
-Summary:
-<short summary>
-
-Key points:
-- ...
-- ...
-- ...
+{{
+    "summary": "A concise summary of the transcript.",
+    "key_points": [
+        "First key point",
+        "Second key point",
+        "Third key point"
+    ]
+}}
 """
 
 
@@ -37,12 +38,17 @@ Your task is to:
 Transcript:
 {transcript}
 
-Output format:
+Return the result as valid JSON using exactly this structure:
 
-Keywords:
-- <keyword 1>
-- <keyword 2>
-- ...
+{{
+    "keywords": [
+        "keyword 1",
+        "keyword 2",
+        "keyword 3",
+        "keyword 4",
+        "keyword 5"
+    ]
+}}
 """
 
 GENERATE_TITLE_PROMPT = """
@@ -56,12 +62,15 @@ Your task is to:
 Transcript:
 {transcript}
 
-Output format:
+Return the result as valid JSON using exactly this structure:
 
-Suggested Titles:
-1. <Title 1>
-2. <Title 2>
-3. <Title 3>
+{{
+    "titles": [
+        "Title 1",
+        "Title 2",
+        "Title 3"
+    ]
+}}
 """
 
 QNA_PROMPT = """
@@ -75,14 +84,24 @@ Your task is to:
 Transcript:
 {transcript}
 
-Output format:
+Return the result as valid JSON using exactly this structure:
 
-Q1: <question>
-A1: <answer>
-
-Q2: <question>
-A2: <answer>
-...
+{{
+    "questions": [
+        {{
+            "question": "Question 1",
+            "answer": "Answer 1"
+        }},
+        {{
+            "question": "Question 2",
+            "answer": "Answer 2"
+        }},
+        {{
+            "question": "Question 3",
+            "answer": "Answer 3"
+        }}
+    ]
+}}
 """
 
 
@@ -107,5 +126,5 @@ def build_title_prompt(transcript: str) -> str:
 
 
 def build_qna_prompt(transcript: str) -> str:
-    """Build a prompt for answering questions based on transcript."""
+    """Build a prompt for generating questions and answers."""
     return QNA_PROMPT.format(transcript=transcript)

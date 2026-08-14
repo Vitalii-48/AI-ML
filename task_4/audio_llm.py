@@ -80,6 +80,7 @@ class AudioLLMService:
                 model=self.llm_model,
                 messages=messages,
                 temperature=0.3,
+                response_format={"type": "json_object"},
             )
         except (
                 AuthenticationError,
