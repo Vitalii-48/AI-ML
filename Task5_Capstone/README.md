@@ -8,7 +8,7 @@ input, function calling, and session save/load.
 
 - **Conversational memory** — full chat history is kept and sent with every request, with streaming responses printed token-by-token.
 - **Semantic knowledge base** — facts are stored as embeddings (`sentence-transformers`, `all-MiniLM-L6-v2`) and retrieved by meaning, not by keyword overlap.
-- **Voice input** — audio files (`.mp3`, `.wav`, `.m4a`) are transcribed with Groq's Whisper (`whisper-large-v3`) and added to the knowledge base with source metadata.
+- **Voice input** — audio files (`.mp3`, `.wav`, `.m4a`) are transcribed with Groq's Whisper and added to the knowledge base with source metadata.
 - **Function calling** — the assistant can call two tools on its own (or on explicit command):
   - `semantic_search` — looks up the most relevant fact in the knowledge base.
   - `summarize_session` — returns a clean bullet-point summary of the conversation.
@@ -21,11 +21,12 @@ input, function calling, and session save/load.
 ```
 Task5_Capstone/
 ├── main.py            # CLI loop, commands, orchestration
-├── tools.py            # search_kb() and summarize_session() tool implementations
+├── tools.py            # Tool schemas + search_kb() / summarize_session() implementations
 ├── vector_store.py     # VectorStore class (embeddings, search, save/load)
+├── prompts.py           # SYSTEM_PROMPT and SUMMARY_PROMPT text
+├── constants.py         # Centralized paths and model names
 ├── audio/               # sample audio files for /update_kb_voice
 ├── sessions/            # saved session .json files (created automatically)
-├── .env                 # GROQ_API_KEY=...
 └── README.md
 ```
 
@@ -94,13 +95,21 @@ Exiting...
 
 ## Design Notes
 
+- **`tools.py` holds both halves of each tool**: the JSON schema the model sees
+  (`SEMANTIC_SEARCH_TOOL`, `SUMMARIZE_SESSION_TOOL`, combined into `tools`) and
+  the Python functions that actually run when the model calls them (`search_kb`,
+  `summarize_session`). Keeping them together makes it obvious which schema
+  corresponds to which implementation.
 - **Knowledge base vs. conversation memory** are kept separate: the knowledge base
   (`VectorStore`) holds durable facts the user has explicitly saved, while
   `messages` holds the turn-by-turn dialogue. `/summarize_session` summarizes
   only the conversation, not the knowledge base, per the assignment scope.
-- **Tool calling is retried** with `temperature=0` to reduce (though not fully
-  eliminate) occasional malformed function-call output from the underlying
-  model — a known limitation of `llama-3.3-70b-versatile` on Groq.
+- **All prompt text lives in `prompts.py`**, and all model names / file paths
+  live in `constants.py` — nothing is hardcoded inline, so either can be changed
+  in one place.
+- **Tool calling uses `temperature=0`** to reduce (though not fully eliminate)
+  occasional malformed function-call output from the underlying model — a known
+  limitation of `llama-3.3-70b-versatile` on Groq.
 - **Sessions are serialized without embeddings** — only text and metadata are
   saved; embeddings are recomputed on load. This keeps session files small and
   human-readable, at the cost of a short delay when loading a large knowledge base.

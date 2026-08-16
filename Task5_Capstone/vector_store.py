@@ -2,10 +2,12 @@
 import  numpy as np
 from sentence_transformers import SentenceTransformer
 
+from constants import EMBEDDING_MODEL_NAME
+
 
 class VectorStore:
 
-    def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
+    def __init__(self, model_name: str = EMBEDDING_MODEL_NAME):
         """Initialize the vector store and embedding model."""
         self.model = SentenceTransformer(model_name)
         self.texts: list[str] = []

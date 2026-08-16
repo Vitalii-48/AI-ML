@@ -7,8 +7,11 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from groq import Groq
+
+from prompts import SYSTEM_PROMPT
+from constants import DEFAULT_MODEL_NAME, WHISPER_MODEL_NAME
 from vector_store import VectorStore
-from tools import search_kb, summarize_session
+from tools import search_kb, summarize_session, tools
 
 load_dotenv()
 
@@ -19,21 +22,10 @@ AUDIO_DIR = SCRIPT_DIR / "audio"
 SESSION_DIR = SCRIPT_DIR / "sessions"
 SESSION_DIR.mkdir(exist_ok=True)
 
-SYSTEM_PROMPT = (
-    "You are a helpful assistant with access to the user's personal knowledge base "
-    "and tools that help answer questions.\n\n"
-    "Use the semantic_search tool ONLY when the user asks about information that "
-    "may already exist in their knowledge base, such as their name, preferences, "
-    "location, possessions, or other personal facts. "
-    "Do NOT use semantic_search when the user is simply sharing new information "
-    "or making casual conversation.\n\n"
-    "Use the summarize_session tool when the user explicitly asks for a "
-    "summary or recap of the current conversation (for example: 'summarize', "
-    "'recap our chat', or 'what have we talked about?'). "
-    "If no tool is appropriate, answer normally using your general knowledge."
-)
+MODEL_NAME = DEFAULT_MODEL_NAME
 
-MODEL_NAME = "llama-3.3-70b-versatile"
+
+
 
 messages = [
     {"role": "system", "content": SYSTEM_PROMPT}
@@ -48,36 +40,6 @@ if not api_key:
 
 client = Groq(api_key=api_key)
 
-tools = [
-    {
-        "type": "function",
-        "function": {
-            "name": "semantic_search",
-            "description": "Searches the user's knowledge base and returns the most relevant fact.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "query": {
-                        "type": "string",
-                        "description": "The search question"
-                    }
-                },
-                "required": ["query"]
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "summarize_session",
-            "description": "Summarizes the current chat session into a clean bullet-point summary.",
-            "parameters": {
-                "type": "object",
-                "properties": {}
-            }
-        }
-    }
-]
 
 
 def parse_args():
@@ -85,7 +47,7 @@ def parse_args():
     parser.add_argument(
         "-model",
         type=str,
-        default="llama-3.3-70b-versatile",
+        default=DEFAULT_MODEL_NAME,
         help="Groq model to use (default: llama-3.3-70b-versatile)"
     )
     return parser.parse_args()
@@ -133,7 +95,7 @@ def update_kb_voice():
         with open(file_path, "rb") as audio_file:
             transcription = client.audio.transcriptions.create(
                 file=audio_file,
-                model="whisper-large-v3",
+                model=WHISPER_MODEL_NAME,
             )
     except Exception as e:
         print(f"Assistant: Sorry, I couldn't transcribe that file. (Error: {e})")
@@ -150,11 +112,11 @@ def update_kb_voice():
     print(f"[Saved] Fact saved from voice (source: {file_path.name}). Total facts in KB: {len(knowledge_base)}")
 
 
-def get_completion(force_tool: str | None= None):
+def get_completion(tool_to_be_called: str | None = None):
     """Generate a model response and execute tool calls when needed."""
     tool_choice = "auto"
-    if force_tool:
-        tool_choice = {"type": "function", "function": {"name": force_tool}}
+    if tool_to_be_called:
+        tool_choice = {"type": "function", "function": {"name": tool_to_be_called}}
 
     try:
         response = client.chat.completions.create(
@@ -223,7 +185,7 @@ def call_tool_forced(tool_name: str, query: str = ""):
     """Force the model to invoke a specific tool."""
     if query:
         messages.append({"role": "user", "content": f"Search for: {query}"})
-    get_completion(force_tool=tool_name)
+    get_completion(tool_to_be_called=tool_name)
 
 
 def stream_completion() -> str:

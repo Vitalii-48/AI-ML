@@ -1,4 +1,7 @@
-# Task5_Capstone\tools.py
+from prompts import SUMMARY_PROMPT
+
+
+# --- Tool execution functions ---
 
 def search_kb(knowledge_base, query: str) -> str:
     """Search the knowledge base and return the most relevant fact."""
@@ -36,13 +39,7 @@ def summarize_session(client, model_name: str, messages: list) -> str:
         messages=[
             {
                 "role": "system",
-                "content": (
-                    "Summarize the following conversation.\n"
-                    "Return a short bullet-point summary.\n"
-                    "Include only what was discussed.\n"
-                    "Do not invent facts.\n"
-                    "Do not mention any knowledge base or external information."
-                ),
+                "content": SUMMARY_PROMPT,
             },
             {
                 "role": "user",
@@ -53,4 +50,39 @@ def summarize_session(client, model_name: str, messages: list) -> str:
     )
 
     return summary_response.choices[0].message.content
+
+
+# --- Tool schemas (for function calling) ---
+
+SEMANTIC_SEARCH_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "semantic_search",
+        "description": "Searches the user's knowledge base and returns the most relevant fact.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "The search question"
+                }
+            },
+            "required": ["query"]
+        }
+    }
+}
+
+SUMMARIZE_SESSION_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "summarize_session",
+        "description": "Summarizes the current chat session into a clean bullet-point summary.",
+        "parameters": {
+            "type": "object",
+            "properties": {}
+        }
+    }
+}
+
+tools = [SEMANTIC_SEARCH_TOOL, SUMMARIZE_SESSION_TOOL]
 
