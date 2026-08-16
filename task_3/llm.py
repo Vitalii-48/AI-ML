@@ -1,115 +1,89 @@
-# task_3\llm.py
 import os
-from typing import List, Tuple
 
 from dotenv import load_dotenv
+from groq import (
+    APIConnectionError,
+    APIStatusError,
+    APITimeoutError,
+    AuthenticationError,
+    RateLimitError,
+)
 from groq import Groq
-from groq.types.chat import ChatCompletionUserMessageParam
+from groq.types.chat import ChatCompletionUserMessageParam, ChatCompletionMessageParam
 
 from constants import DEFAULT_LLM_MODEL
+from prompts import SYSTEM_PROMPT, build_answer_prompt, build_quiz_prompt
 from vector_store import VectorStore
 
-load_dotenv()
 
-api_key = os.getenv("GROQ_API_KEY")
-if not api_key:
-    raise EnvironmentError(
-        "GROQ_API_KEY is not set. Create a .env file with "
-        "GROQ_API_KEY=<your key> next to this script."
-    )
-client = Groq(api_key=api_key)
+class LLMService:
+    def __init__(self, model: str = DEFAULT_LLM_MODEL) -> None:
+        self.model = model
+        load_dotenv()
+        api_key = os.getenv("GROQ_API_KEY")
+        if not api_key:
+            raise EnvironmentError(
+                "GROQ_API_KEY is not set. Create a .env file with "
+                "GROQ_API_KEY=<your key> next to this script."
+            )
 
-
-def build_context(store: VectorStore, search_results: List[Tuple[int, float]]) -> str:
-    """Generates textual context from top search results — with source numbering."""
-    context_parts: list[str] = []
-    for rank, (idx, _) in enumerate(search_results, start=1):
-        doc = store.get_by_id(idx)
-        context_parts.append(
-            f"Source {rank}\n"
-            f"File: {doc['source']}\n"
-            f"Paragraph: {doc['chunk']}\n"
-            f"{doc['text']}"
-        )
-    return "\n\n".join(context_parts)
+        self.client = Groq(api_key=api_key)
+        self.messages: list[ChatCompletionMessageParam] = [
+            {
+                "role": "system",
+                "content": SYSTEM_PROMPT,
+            }
+        ]
 
 
-def generate_answer(
-    store: VectorStore,
-    query: str,
-    search_results: List[Tuple[int, float]],
-    model: str = DEFAULT_LLM_MODEL,
-) -> str | None:
-    """Generate an answer using retrieved documents."""
-    context = build_context(store, search_results)
+    def _call_llm(self, messages: list[ChatCompletionUserMessageParam]) -> str:
+        """Send a single-message prompt to Groq and return the reply text.
 
-    prompt = f"""
-You are a helpful study assistant.
+        Raises RuntimeError with a clear, specific message for each known
+        failure mode, instead of catching a bare Exception.
+        """
 
-Answer the question using ONLY the provided context.
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+            )
+        except AuthenticationError as exc:
+            raise RuntimeError("Authentication failed: check your GROQ_API_KEY.") from exc
+        except RateLimitError as exc:
+            raise RuntimeError("Rate limit hit (429): please wait a moment and try again.") from exc
+        except APITimeoutError as exc:
+            raise RuntimeError("The request timed out. Check your connection and try again.") from exc
+        except APIConnectionError as exc:
+            raise RuntimeError(f"Connection error while calling Groq API: {exc}") from exc
+        except APIStatusError as exc:
+            raise RuntimeError(f"Groq API returned an error (status {exc.status_code}): {exc.message}") from exc
 
-If the answer is not in the context, say:
-"I don't have enough information in the provided context."
+        return response.choices[0].message.content or ""
 
-When possible, mention which source(s) you used in your answer.
-For example:
-"According to python (paragraph 4)..."
+    def generate_answer(
+            self,
+            store: VectorStore,
+            query: str,
+            search_results: list[tuple[int, float]],
+    ) -> str:
+        """Generate an answer to `query` using only the retrieved documents."""
+        context = store.build_context(search_results)
+        prompt = build_answer_prompt(context=context, query=query)
+        messages = self.messages + [{"role": "user", "content": prompt}]
+        answer = self._call_llm(messages)
+        self.messages.append({"role": "user", "content": prompt})
+        self.messages.append({"role": "assistant", "content": answer})
+        return answer
 
-Context:
-{context}
+    def generate_quiz_question(
+            self,
+            store: VectorStore,
+            search_results: list[tuple[int, float]],
+    ) -> str:
+        """Generate one short quiz question based on the single top match (Study Mode)."""
+        top_result = search_results[:1]
+        context = store.build_context(top_result)
+        prompt = build_quiz_prompt(context=context)
+        return self._call_llm([{"role": "user", "content": prompt}])
 
-Question:
-{query}
-
-Answer:
-"""
-
-    messages: list[ChatCompletionUserMessageParam] = [
-        {"role": "user", "content": prompt}
-    ]
-
-    try:
-        response = client.chat.completions.create(
-            model=model,
-            messages=messages,
-        )
-    except Exception as e:
-        return f"Error while contacting LLM: {e}"
-
-    return response.choices[0].message.content
-
-
-def generate_quiz_question(
-    store: VectorStore,
-    search_results: List[Tuple[int, float]],
-    model: str = DEFAULT_LLM_MODEL,
-) -> str | None:
-    """Generate one short quiz question based on the top retrieved match (Study Mode)."""
-    top_result = search_results[:1]
-    context = build_context(store, top_result)
-
-    prompt = f"""
-You are a study assistant helping the user practice what they just learned.
-
-Based ONLY on the context below, write exactly ONE short quiz question
-that checks understanding of the material. Do not answer it yourself.
-
-Context:
-{context}
-
-Quiz question:
-"""
-
-    messages: list[ChatCompletionUserMessageParam] = [
-        {"role": "user", "content": prompt}
-    ]
-
-    try:
-        response = client.chat.completions.create(
-            model=model,
-            messages=messages,
-        )
-    except Exception as e:
-        return f"Error while generating quiz question: {e}"
-
-    return response.choices[0].message.content

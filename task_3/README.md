@@ -11,13 +11,17 @@ context.
 
 ```text
 task_3/
-├── semantic_search_day3.py   # CLI entry point (argparse + main loop)
-├── constants.py               # application configuration
-├── models.py                  # Document schema (TypedDict)
-├── vector_store.py            # VectorStore class — loading, embedding, search
-├── llm.py                     # Groq client, answer/quiz generation
-├── knowledge/                 # .txt knowledge base (biology, countries, economics, python)
-├── requirements.txt
+├── semantic_search_day3.py  # CLI entry point (argparse & UI loop)
+├── chat_session.py               # StudySession manager (turns, tokens, auto-logging)
+├── vector_store.py          # VectorStore class (loading, embeddings, cosine search)
+├── llm.py                   # Groq API interaction & prompt builders
+├── constants.py             # Centralized settings & file extension patterns
+├── enums.py                 # Enums (LogFormat, Role)
+├── models.py                # pydantic schemas (Document)
+├── prompts.py               # Centralized prompt templates & builder functions
+├── knowledge/               # Knowledge base (.txt files)
+├── logs/                    # Generated markdown/JSON session logs
+└── requirements.txt
 └── README.md
 ```
 
@@ -44,11 +48,13 @@ python semantic_search_day3.py
 ### CLI options
 
 | Flag | Description | Default |
-| --- | --- | --- |
+| --- | --- |  |
 | `--knowledge` | Path to the knowledge base folder | `knowledge/` next to the script |
 | `--top-n` | Number of top matches to retrieve per question | `3` |
 | `--model` | Groq model used for answers and quiz questions | `llama-3.3-70b-versatile` |
 | `--no-quiz` | Disable Study Mode (skip the quiz question) | off |
+| `--log-format` | Session log format (md or json) | md |
+
 
 Example:
 
