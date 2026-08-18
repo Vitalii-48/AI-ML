@@ -118,17 +118,13 @@ def get_completion(tool_to_be_called: str | None = None):
     if tool_to_be_called:
         tool_choice = {"type": "function", "function": {"name": tool_to_be_called}}
 
-    try:
-        response = client.chat.completions.create(
-            model=MODEL_NAME,
-            messages=messages,
-            tools=tools,
-            tool_choice=tool_choice,
-            temperature=0,
-        )
-    except Exception as e:
-        print(f"Assistant: Sorry, I had trouble processing that. (Error: {e})")
-        return
+    response = client.chat.completions.create(
+        model=MODEL_NAME,
+        messages=messages,
+        tools=tools,
+        tool_choice=tool_choice,
+        temperature=0,
+    )
 
     response_message = response.choices[0].message
 
@@ -178,15 +174,24 @@ def get_completion(tool_to_be_called: str | None = None):
 def chat(user_input: str):
     """Append the user's message to the conversation and generate a reply."""
     messages.append({"role": "user", "content": user_input})
-    get_completion()
+    try:
+        get_completion()
+    except Exception as e:
+        messages.pop()
+        print(f"Assistant: Sorry, I had trouble processing that. (Error: {e})")
 
 
 def call_tool_forced(tool_name: str, query: str = ""):
     """Force the model to invoke a specific tool."""
     if query:
         messages.append({"role": "user", "content": f"Search for: {query}"})
-    get_completion(tool_to_be_called=tool_name)
-
+    try:
+        get_completion(tool_to_be_called=tool_name)
+    except Exception as e:
+        if query:
+            messages.pop()
+        print(f"Assistant: Sorry, I had trouble processing that. (Error: {e})")
+        
 
 def stream_completion() -> str:
     """Stream the assistant's response token by token and return the complete text."""
