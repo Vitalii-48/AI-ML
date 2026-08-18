@@ -57,7 +57,3 @@ class VectorStore:
     def is_empty(self) -> bool:
         """Return True if the knowledge base contains no entries."""
         return len(self.texts) == 0
-
-    def __len__(self) -> int:
-        """Return the number of stored entries."""
-        return len(self.texts)
