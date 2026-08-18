@@ -6,12 +6,15 @@ input, function calling, and session save/load.
 
 ## Features
 
-- **Conversational memory** — full chat history is kept and sent with every request, with streaming responses printed token-by-token.
-- **Semantic knowledge base** — facts are stored as embeddings (`sentence-transformers`, `all-MiniLM-L6-v2`) and retrieved by meaning, not by keyword overlap.
-- **Voice input** — audio files (`.mp3`, `.wav`, `.m4a`) are transcribed with Groq's Whisper and added to the knowledge base with source metadata.
+- **Conversational memory** — full chat history is kept and sent with every request, with streaming responses printed
+  token-by-token.
+- **Semantic knowledge base** — facts are stored as embeddings (`sentence-transformers`, `all-MiniLM-L6-v2`) and
+  retrieved by meaning, not by keyword overlap.
+- **Voice input** — audio files (`.mp3`, `.wav`, `.m4a`) are transcribed with Groq's Whisper and added to the knowledge
+  base with source metadata.
 - **Function calling** — the assistant can call two tools on its own (or on explicit command):
-  - `semantic_search` — looks up the most relevant fact in the knowledge base.
-  - `summarize_session` — returns a clean bullet-point summary of the conversation.
+    - `semantic_search` — looks up the most relevant fact in the knowledge base.
+    - `summarize_session` — returns a clean bullet-point summary of the conversation.
 - **Configurable model** — switch the underlying Groq model via a CLI flag.
 - **Editable system prompt** — change the assistant's persona at any time, from raw text or a file.
 - **Session persistence** — save and reload the full conversation + knowledge base.
@@ -19,15 +22,17 @@ input, function calling, and session save/load.
 ## Project Structure
 
 ```
-Task5_Capstone/
-├── main.py            # CLI loop, commands, orchestration
-├── tools.py            # Tool schemas + search_kb() / summarize_session() implementations
-├── vector_store.py     # VectorStore class (embeddings, search, save/load)
-├── prompts.py           # SYSTEM_PROMPT and SUMMARY_PROMPT text
-├── constants.py         # Centralized paths and model names
-├── audio/               # sample audio files for /update_kb_voice
-├── sessions/            # saved session .json files (created automatically)
-└── README.md
+.
+├── requirements.txt         # Root dependencies file
+└── Task5_Capstone/
+    ├── main.py              # CLI loop, commands, orchestration
+    ├── tools.py             # Tool schemas + search_kb() / summarize_session
+    ├── vector_store.py      # VectorStore class
+    ├── prompts.py           # SYSTEM_PROMPT and SUMMARY_PROMPT text
+    ├── constants.py         # Centralized paths and model names
+    ├── audio/               # sample audio files
+    ├── sessions/            # saved session .json files
+    └── README.md
 ```
 
 ## Setup
@@ -52,16 +57,16 @@ Task5_Capstone/
 
 ## Commands
 
-| Command              | Description |
-|----------------------|---|
-| `/update_kb_text`    | Add a fact to the knowledge base by typing it. |
-| `/update_kb_voice`   | Add a fact by transcribing an audio file (`.mp3`/`.wav`/`.m4a`). |
-| `/search`            | Force a semantic search over the knowledge base for a given query. |
-| `/summarize_session` | Force a bullet-point summary of the conversation so far. |
+| Command              | Description                                                                                                       |
+|----------------------|-------------------------------------------------------------------------------------------------------------------|
+| `/update_kb_text`    | Add a fact to the knowledge base by typing it.                                                                    |
+| `/update_kb_voice`   | Add a fact by transcribing an audio file (`.mp3`/`.wav`/`.m4a`).                                                  |
+| `/search`            | Force a semantic search over the knowledge base for a given query.                                                |
+| `/summarize_session` | Force a bullet-point summary of the conversation so far.                                                          |
 | `/change_prompt`     | Change the assistant's system prompt — enter new text directly, or a path to a `.txt` file containing the prompt. |
-| `/save_session`      | Save the current conversation and knowledge base to a timestamped `.json` file in `sessions/`. |
-| `/load_session`      | Load a previously saved session file, restoring both conversation and knowledge base. |
-| `/exit`              | Exit the assistant. |
+| `/save_session`      | Save the current conversation and knowledge base to a timestamped `.json` file in `sessions/`.                    |
+| `/load_session`      | Load a previously saved session file, restoring both conversation and knowledge base.                             |
+| `/exit`              | Exit the assistant.                                                                                               |
 
 Any other input is treated as a normal chat message. The assistant may decide on
 its own to call `semantic_search` or `summarize_session` if it judges that

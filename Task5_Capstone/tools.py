@@ -1,9 +1,12 @@
+from groq import Groq
+
+from Task5_Capstone.vector_store import VectorStore
 from prompts import SUMMARY_PROMPT
 
 
 # --- Tool execution functions ---
 
-def search_kb(knowledge_base, query: str) -> str:
+def search_kb(knowledge_base: VectorStore, query: str) -> str:
     """Search the knowledge base and return the most relevant fact."""
     if knowledge_base.is_empty():
         return "Knowledge base is empty. Add facts first with /update_kb_text"
@@ -18,7 +21,7 @@ def search_kb(knowledge_base, query: str) -> str:
     return best_fact
 
 
-def summarize_session(client, model_name: str, messages: list) -> str:
+def summarize_session(client: Groq, model_name: str, messages: list) -> str:
     """Generate a summary of the current chat session."""
     conversation = []
 
@@ -46,9 +49,8 @@ def summarize_session(client, model_name: str, messages: list) -> str:
                 "content": context,
             },
         ],
-        temperature=0.2,
+        temperature=0.0,
     )
-
     return summary_response.choices[0].message.content
 
 
