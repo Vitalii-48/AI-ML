@@ -1,5 +1,5 @@
 # vector_store.py
-import  numpy as np
+import numpy as np
 from sentence_transformers import SentenceTransformer
 
 from constants import EMBEDDING_MODEL_NAME
@@ -62,4 +62,3 @@ class VectorStore:
     def __len__(self) -> int:
         """Return the number of stored entries."""
         return len(self.texts)
-

@@ -24,9 +24,6 @@ SESSION_DIR.mkdir(exist_ok=True)
 
 MODEL_NAME = DEFAULT_MODEL_NAME
 
-
-
-
 messages = [
     {"role": "system", "content": SYSTEM_PROMPT}
 ]
@@ -39,7 +36,6 @@ if not api_key:
     )
 
 client = Groq(api_key=api_key)
-
 
 
 def parse_args():
@@ -191,7 +187,7 @@ def call_tool_forced(tool_name: str, query: str = ""):
         if query:
             messages.pop()
         print(f"Assistant: Sorry, I had trouble processing that. (Error: {e})")
-        
+
 
 def stream_completion() -> str:
     """Stream the assistant's response token by token and return the complete text."""
@@ -271,7 +267,7 @@ def main():
           "/summarize_session, "
           "/change_prompt, "
           "/save_session, "
-          "/load_session, "          
+          "/load_session, "
           "/exit")
 
     while True:
