@@ -5,16 +5,18 @@ from pathlib import Path
 
 from groq import Groq
 
+from schems import tools
 from constants import DEFAULT_MODEL_NAME, WHISPER_MODEL_NAME, AUDIO_DIR, SESSION_DIR
 from prompts import SYSTEM_PROMPT
 from vector_store import VectorStore
-from tools import search_kb, summarize_session, tools
+from tools import search_kb, summarize_session
+from tts import speak
 
 
 class ChatSession:
     """Owns the conversation history, the knowledge base, and talks to Groq."""
 
-    def __init__(self, model_name: str = DEFAULT_MODEL_NAME):
+    def __init__(self, model_name: str = DEFAULT_MODEL_NAME, voice_enabled: bool = False):
         api_key = os.getenv("GROQ_API_KEY")
         if not api_key:
             raise EnvironmentError(
@@ -26,6 +28,7 @@ class ChatSession:
         self.knowledge_base = VectorStore()
         self.model_name = model_name
         self.messages: list[dict] = [{"role": "system", "content": SYSTEM_PROMPT}]
+        self.voice_enabled = voice_enabled
 
     def update_kb_text(self, fact: str) -> None:
         """Add one fact typed by the user to the knowledge base."""
@@ -86,6 +89,9 @@ class ChatSession:
                 })
                 print(f"Assistant: {result}")
                 self.messages.append({"role": "assistant", "content": result})
+
+                if self.voice_enabled:
+                    speak(result)
                 return
 
             else:
@@ -117,6 +123,10 @@ class ChatSession:
         print()
 
         self.messages.append({"role": "assistant", "content": full_reply})
+
+        if self.voice_enabled:
+            speak(full_reply)
+
         return full_reply
 
     def _get_completion(self, tool_to_be_called: str | None = None) -> None:

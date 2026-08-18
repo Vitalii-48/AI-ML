@@ -15,12 +15,17 @@ def parse_args():
         default=DEFAULT_MODEL_NAME,
         help="Groq model to use (default: llama-3.3-70b-versatile)"
     )
+    parser.add_argument(
+        "--voice",
+        action="store_true",
+        help="Enable voice output using local TTS"
+    )
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
-    session = ChatSession(model_name=args.model)
+    session = ChatSession(model_name=args.model, voice_enabled=args.voice)
 
     print(f"Assistant is ready! Using model: {session.model_name}")
     print("Commands: "
