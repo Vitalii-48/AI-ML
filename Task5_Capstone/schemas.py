@@ -1,5 +1,3 @@
-# --- Tool schemas (for function calling) ---
-
 SEMANTIC_SEARCH_TOOL = {
     "type": "function",
     "function": {

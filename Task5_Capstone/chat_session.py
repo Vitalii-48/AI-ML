@@ -1,11 +1,12 @@
 import json
-import os
 from datetime import datetime
 from pathlib import Path
 
 from groq import Groq
+from groq.types.chat import ChatCompletionMessage
 
-from schems import tools
+from settings import settings
+from schemas import tools
 from constants import DEFAULT_MODEL_NAME, WHISPER_MODEL_NAME, AUDIO_DIR, SESSION_DIR
 from prompts import SYSTEM_PROMPT
 from vector_store import VectorStore
@@ -17,14 +18,8 @@ class ChatSession:
     """Owns the conversation history, the knowledge base, and talks to Groq."""
 
     def __init__(self, model_name: str = DEFAULT_MODEL_NAME, voice_enabled: bool = False):
-        api_key = os.getenv("GROQ_API_KEY")
-        if not api_key:
-            raise EnvironmentError(
-                "GROQ_API_KEY is not set. Create a .env file with "
-                "GROQ_API_KEY=<your key> next to this script."
-            )
 
-        self.client = Groq(api_key=api_key)
+        self.client = Groq(api_key=settings.groq_api_key)
         self.knowledge_base = VectorStore()
         self.model_name = model_name
         self.messages: list[dict] = [{"role": "system", "content": SYSTEM_PROMPT}]
@@ -67,7 +62,7 @@ class ChatSession:
         self.messages[0] = {"role": "system", "content": new_prompt}
         return new_prompt
 
-    def _execute_tool_calls(self, response_message) -> None:
+    def _execute_tool_calls(self, response_message: ChatCompletionMessage) -> None:
         """Append the assistant's tool-call message and execute each tool."""
         self.messages.append({
             "role": "assistant",
@@ -160,7 +155,7 @@ class ChatSession:
             self.messages.pop()
             print(f"Assistant: Sorry, I had trouble processing that. (Error: {e})")
 
-    def call_tool_forced(self, tool_name: str, query: str = "") -> None:
+    def call_tool_forced(self, tool_name: str, query: str) -> None:
         """Force the model to invoke a specific tool."""
         if query:
             self.messages.append({"role": "user", "content": f"Search for: {query}"})
@@ -198,3 +193,50 @@ class ChatSession:
         self.messages.clear()
         self.messages.extend(data.get("messages", []))
         self.knowledge_base.load_from_dict(data.get("knowledge_base", {}))
+
+    def handle_command(self, user_input: str) -> None:
+        """Processes CLI slash commands or delegates regular text to chat."""
+        if user_input == "/change_prompt":
+            new_prompt_input = input("Enter new prompt or a filename: ").strip()
+            if new_prompt_input:
+                new_prompt = self.change_prompt(new_prompt_input)
+                print(f'Assistant: System prompt updated.\nNew prompt: "{new_prompt}"')
+            else:
+                print("Assistant: Please provide a new prompt or a filename.")
+
+        elif user_input == "/update_kb_text":
+            fact = input("Enter your fact: ")
+            self.update_kb_text(fact)
+            print(f"[Saved] Fact saved. Total facts in KB: {len(self.knowledge_base.texts)}")
+
+        elif user_input == "/update_kb_voice":
+            file_input = input("Enter audio file path (e.g. test_audio1.mp3): ").strip()
+            try:
+                text = self.update_kb_voice(Path(file_input))
+                print(f"[Transcribed] \"{text}\"")
+                print(f"[Saved] Total facts in KB: {len(self.knowledge_base.texts)}")
+            except (FileNotFoundError, ValueError) as e:
+                print(f"Assistant: {e}")
+
+        elif user_input == "/search":
+            query = input("Enter your search query: ").strip()
+            self.call_tool_forced("semantic_search", query=query)
+
+        elif user_input == "/summarize_session":
+            self.call_tool_forced("summarize_session", query="")
+
+        elif user_input == "/save_session":
+            filename = self.save_session()
+            print(f"Assistant: Session saved to {filename}")
+
+        elif user_input == "/load_session":
+            filename = input("Enter filename to load session: ").strip()
+            try:
+                self.load_session(filename)
+                print(f"Assistant: Session loaded from {filename}")
+                print(f"[Info] {len(self.messages)} messages, {len(self.knowledge_base.texts)} facts in KB")
+            except FileNotFoundError as e:
+                print(f"Assistant: {e}")
+
+        else:
+            self.chat(user_input)
