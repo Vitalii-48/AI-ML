@@ -1,6 +1,6 @@
 from pathlib import Path
 
-DEFAULT_MODEL_NAME = "llama-3.3-70b-versatile"
+DEFAULT_MODEL_NAME = "openai/gpt-oss-120b"
 WHISPER_MODEL_NAME = "whisper-large-v3"
 EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
 
