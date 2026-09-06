@@ -1,0 +1,154 @@
+{
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are a funny pirate assistant."
+    },
+    {
+      "role": "user",
+      "content": "You: Hello! My name is Vitalii."
+    },
+    {
+      "role": "assistant",
+      "content": "Hello Vitalii! It's nice to meet you. Is there something I can help you with or would you like to chat?"
+    },
+    {
+      "role": "user",
+      "content": "What is my cat's name?"
+    },
+    {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "e3f6s52yw",
+          "function": {
+            "arguments": "{\"query\":\"cat's name\"}",
+            "name": "semantic_search"
+          },
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "e3f6s52yw",
+      "content": "I have a cat named Luna."
+    },
+    {
+      "role": "assistant",
+      "content": "So, your cat's name is Luna. That's a beautiful name for a cat. Is Luna a playful and affectionate companion?"
+    },
+    {
+      "role": "user",
+      "content": "What do I usually study?"
+    },
+    {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "ww62r5adc",
+          "function": {
+            "arguments": "{\"query\":\"usual study topic\"}",
+            "name": "semantic_search"
+          },
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "ww62r5adc",
+      "content": "I study Python every evening."
+    },
+    {
+      "role": "assistant",
+      "content": "So, you're consistent with your studies, dedicating time each evening to learn Python. That's great dedication. Are you working on any specific projects or goals with your Python studies?"
+    },
+    {
+      "role": "user",
+      "content": "Search for: internship"
+    },
+    {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "f1n0zkaqt",
+          "function": {
+            "arguments": "{\"query\":\"internship\"}",
+            "name": "semantic_search"
+          },
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "f1n0zkaqt",
+      "content": "I study Python every evening."
+    },
+    {
+      "role": "assistant",
+      "content": "It seems like the search results are related to your studies. You mentioned earlier that you study Python every evening. Are you looking for an internship related to Python or programming in general?"
+    },
+    {
+      "role": "user",
+      "content": "What is the capital of Italy?"
+    },
+    {
+      "role": "assistant",
+      "content": "The capital of Italy is Rome."
+    },
+    {
+      "role": "user",
+      "content": "Tell me a joke."
+    },
+    {
+      "role": "assistant",
+      "content": "Why did the pirate quit his job? Because he was sick of all the arrrr-guments! Yer looking for more, eh? Alright then, matey!"
+    },
+    {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "3fzew938k",
+          "function": {
+            "arguments": "{}",
+            "name": "summarize_session"
+          },
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "3fzew938k",
+      "content": "Here's a short bullet-point summary of the conversation:\n* The user introduced themselves as Vitalii.\n* The user asked about their cat's name, and it was stated to be Luna.\n* The user asked about their study habits, and it was mentioned that they study Python.\n* The user searched for internships, possibly related to Python.\n* The user asked about the capital of Italy, and was told it's Rome.\n* The user was told a pirate-themed joke."
+    },
+    {
+      "role": "assistant",
+      "content": "Here's a short bullet-point summary of the conversation:\n* The user introduced themselves as Vitalii.\n* The user asked about their cat's name, and it was stated to be Luna.\n* The user asked about their study habits, and it was mentioned that they study Python.\n* The user searched for internships, possibly related to Python.\n* The user asked about the capital of Italy, and was told it's Rome.\n* The user was told a pirate-themed joke."
+    }
+  ],
+  "knowledge_base": {
+    "texts": [
+      "I have a cat named Luna.",
+      "I study Python every evening.",
+      "Hi. I'm doing an internship. I need to create a test audio file for my fourth task. Could you generate an English voice recording of this text?"
+    ],
+    "metadata": [
+      {
+        "source": "text"
+      },
+      {
+        "source": "text"
+      },
+      {
+        "source": "test_audio1.mp3"
+      }
+    ]
+  }
+}
